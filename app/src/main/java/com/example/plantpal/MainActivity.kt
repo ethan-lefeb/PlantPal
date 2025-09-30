@@ -70,7 +70,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
         }
 
         composable("home") {
-            HomeScreen(navController)
+            PlantPalApp()
         }
     }
 }
