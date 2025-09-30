@@ -1,4 +1,4 @@
-package com.example.plantpal.data
+package com.example.plantpal
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -6,15 +6,19 @@ import kotlinx.coroutines.tasks.await
 
 object AuthRepository {
     private val auth = FirebaseAuth.getInstance()
-    private val db   = FirebaseFirestore.getInstance()
+    private val db = FirebaseFirestore.getInstance()
 
+    // Register a new user and save their displayName in Firestore
     suspend fun registerUser(email: String, password: String, displayName: String): Result<Unit> {
         return try {
-            val user = auth.createUserWithEmailAndPassword(email, password).await().user
-                ?: return Result.failure(Exception("No user returned"))
+            // Create user in Firebase Auth
+            val authResult = auth.createUserWithEmailAndPassword(email, password).await()
+            val user = authResult.user ?: return Result.failure(Exception("No user returned"))
+
+            // Save profile data in Firestore
             val profile = mapOf(
                 "displayName" to displayName,
-                "createdAt"   to System.currentTimeMillis()
+                "createdAt" to System.currentTimeMillis()
             )
             db.collection("users").document(user.uid).set(profile).await()
 
@@ -24,6 +28,7 @@ object AuthRepository {
         }
     }
 
+    // Login existing user
     suspend fun login(email: String, password: String): Result<Unit> {
         return try {
             auth.signInWithEmailAndPassword(email, password).await()
@@ -33,6 +38,14 @@ object AuthRepository {
         }
     }
 
+    // Fetch the current user's displayName from Firestore
+    suspend fun getCurrentUserName(): String? {
+        val uid = auth.currentUser?.uid ?: return null
+        val snapshot = db.collection("users").document(uid).get().await()
+        return snapshot.getString("displayName")
+    }
+
     fun currentUserId(): String? = auth.currentUser?.uid
+
     fun signOut() = auth.signOut()
 }

@@ -9,14 +9,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
-fun AccountCreationScreen(
+fun LoginScreen(
     viewModel: AuthViewModel = viewModel(),
     onSuccess: () -> Unit = {},
-    onNavigateToLogin: () -> Unit = {}
+    onNavigateToSignup: () -> Unit = {}
 ) {
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
-    var displayName by rememberSaveable { mutableStateOf("") }
 
     val uiState by viewModel.uiState.collectAsState()
 
@@ -24,15 +23,16 @@ fun AccountCreationScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Top
     ) {
-        OutlinedTextField(
-            value = displayName,
-            onValueChange = { displayName = it },
-            label = { Text("Display name") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(modifier = Modifier.height(8.dp))
+        // NEW: Show username if available
+        uiState.username?.let { name ->
+            Text(
+                text = "Welcome, $name!",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(bottom = 24.dp)
+            )
+        }
 
         OutlinedTextField(
             value = email,
@@ -51,17 +51,17 @@ fun AccountCreationScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(
-            onClick = { viewModel.register(email.trim(), password, displayName.trim()) },
+            onClick = { viewModel.login(email.trim(), password) },
             modifier = Modifier.fillMaxWidth(),
             enabled = !uiState.isLoading
         ) {
-            Text("Sign up")
+            Text("Log in")
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        TextButton(onClick = onNavigateToLogin) {
-            Text("Already have an account? Log in")
+        TextButton(onClick = onNavigateToSignup) {
+            Text("Need an account? Sign up")
         }
 
         when {

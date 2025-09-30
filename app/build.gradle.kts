@@ -58,6 +58,8 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation("androidx.hilt:hilt-lifecycle-viewmodel-compose:1.3.0")
+    implementation("com.google.android.libraries.sdkcoroutines:sdkcoroutines:1.0.0")
+    implementation("androidx.hilt:hilt-navigation-compose:1.3.0")
     implementation("androidx.activity:activity-compose:1.11.0")
     implementation("com.google.firebase:firebase-bom:34.3.0")
     implementation("com.google.firebase:firebase-auth:24.0.1")

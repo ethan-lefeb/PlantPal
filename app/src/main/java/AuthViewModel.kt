@@ -1,8 +1,7 @@
-package com.example.plantpal.viewmodel
+package com.example.plantpal
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.plantpal.data.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -10,7 +9,8 @@ import kotlinx.coroutines.launch
 data class AuthUiState(
     val isLoading: Boolean = false,
     val success: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val username: String? = null
 )
 
 class AuthViewModel : ViewModel() {
@@ -27,5 +27,22 @@ class AuthViewModel : ViewModel() {
                 AuthUiState(error = result.exceptionOrNull()?.message)
             }
         }
+    }
+
+    fun login(email: String, password: String) {
+        viewModelScope.launch {
+            _uiState.value = AuthUiState(isLoading = true)
+            val result = AuthRepository.login(email, password)
+            if (result.isSuccess) {
+                val name = AuthRepository.getCurrentUserName()
+                _uiState.value = AuthUiState(success = true, username = name)
+            } else {
+                _uiState.value = AuthUiState(error = result.exceptionOrNull()?.message)
+            }
+        }
+    }
+
+    fun resetState() {
+        _uiState.value = AuthUiState()
     }
 }
