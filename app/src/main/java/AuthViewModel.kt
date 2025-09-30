@@ -28,7 +28,6 @@ class AuthViewModel : ViewModel() {
             }
         }
     }
-
     fun login(email: String, password: String) {
         viewModelScope.launch {
             _uiState.value = AuthUiState(isLoading = true)

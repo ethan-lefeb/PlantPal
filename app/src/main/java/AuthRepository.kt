@@ -37,7 +37,6 @@ object AuthRepository {
             Result.failure(e)
         }
     }
-
     // Fetch the current user's displayName from Firestore
     suspend fun getCurrentUserName(): String? {
         val uid = auth.currentUser?.uid ?: return null

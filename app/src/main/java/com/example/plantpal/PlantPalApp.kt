@@ -29,7 +29,6 @@ fun PlantPalApp() {
         Tab("alerts", "Alerts", Icons.Filled.Notifications),
         Tab("profile", "Profile", Icons.Filled.AccountCircle),
     )
-
     Scaffold(
         bottomBar = {
             NavigationBar {

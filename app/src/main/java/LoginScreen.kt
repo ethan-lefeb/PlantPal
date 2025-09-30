@@ -57,7 +57,6 @@ fun LoginScreen(
         ) {
             Text("Log in")
         }
-
         Spacer(modifier = Modifier.height(12.dp))
 
         TextButton(onClick = onNavigateToSignup) {

@@ -16,7 +16,6 @@ fun HomeScreen(
 ) {
     var username by remember { mutableStateOf<String?>(null) }
 
-    // Fetch current user's name once
     LaunchedEffect(Unit) {
         username = AuthRepository.getCurrentUserName()
     }

@@ -21,7 +21,6 @@ fun AppNavGraph(navController: NavHostController) {
                 }
             )
         }
-
         composable("login") {
             LoginScreen(
                 onSuccess = {

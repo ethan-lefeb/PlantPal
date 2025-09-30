@@ -20,6 +20,7 @@ fun AccountCreationScreen(
 
     val uiState by viewModel.uiState.collectAsState()
 
+
     Column(
         modifier = Modifier
             .fillMaxSize()
