@@ -12,7 +12,20 @@
           "package_name": "com.example.plantpal"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "609092239049-9lsr7htkg309s5tt4l9vt9dfufqr5fga.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.plantpal",
+            "certificate_hash": "ca7a836e4f2c3e0c20b747a7e4b318860e0108f3"
+          }
+        },
+        {
+          "client_id": "609092239049-5nj3te3tosm84huntkc8e1avu9ubjnu5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAPwdWMy6vpBZSgpHNh3zZ13mJvtERlfF8"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "609092239049-5nj3te3tosm84huntkc8e1avu9ubjnu5.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
