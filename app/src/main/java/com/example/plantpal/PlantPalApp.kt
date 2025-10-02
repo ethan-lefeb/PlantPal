@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Star
@@ -49,6 +50,17 @@ fun PlantPalApp() {
                     )
                 }
             }
+        },
+        floatingActionButton = {
+            val backStackEntry by navController.currentBackStackEntryAsState()
+            val current = backStackEntry?.destination?.route
+            if (current == "home") {
+                FloatingActionButton(
+                    onClick = { navController.navigate("addPlant") }
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Plant")
+                }
+            }
         }
     ) { innerPadding ->
         NavHost(
@@ -56,10 +68,17 @@ fun PlantPalApp() {
             startDestination = "home",
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable("home")    { CenterText("Your plants will appear here 🌱") }
+            composable("home")    { CenterText("Your plants will appear here 🌱\n\nTap + to add your first plant!") }
             composable("library") { CenterText("Plant Library (placeholder)") }
             composable("alerts")  { CenterText("Notifications (placeholder)") }
             composable("profile") { CenterText("Profile (placeholder)") }
+            composable("addPlant") {
+                AddPlantCaptureScreen(
+                    onSaved = { uri ->
+                        navController.popBackStack()
+                    }
+                )
+            }
         }
     }
 }
@@ -70,7 +89,8 @@ private fun CenterText(text: String) {
         Text(
             text = text,
             modifier = Modifier.align(Alignment.Center),
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodyLarge
         )
     }
 }

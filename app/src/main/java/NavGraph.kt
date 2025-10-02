@@ -21,6 +21,7 @@ fun AppNavGraph(navController: NavHostController) {
                 }
             )
         }
+
         composable("login") {
             LoginScreen(
                 onSuccess = {
@@ -35,7 +36,7 @@ fun AppNavGraph(navController: NavHostController) {
         }
 
         composable("home") {
-            HomeScreen(navController = navController)
+            PlantPalApp()
         }
     }
 }
