@@ -116,6 +116,7 @@ fun AppNavigation(modifier: Modifier = Modifier, startDestination: String = "sta
             )
         }
 
+
         composable("signup") {
             AccountCreationScreen(
                 onSuccess = {

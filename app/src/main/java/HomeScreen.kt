@@ -5,32 +5,35 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import androidx.compose.ui.tooling.preview.Preview
+import com.example.plantpal.ui.theme.PlantPalBackground // 🌿 import your background
 
 @Composable
 fun HomeScreenContent(
     username: String,
     onSignOut: () -> Unit = {}
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = "Welcome, $username!",
-            style = MaterialTheme.typography.titleLarge
-        )
+    PlantPalBackground { // 🌿 Wrap everything in your gradient
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Welcome, $username!",
+                style = MaterialTheme.typography.titleLarge
+            )
 
-        Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-        Button(onClick = onSignOut) {
-            Text("Log out")
+            Button(onClick = onSignOut) {
+                Text("Log out")
+            }
         }
     }
 }
@@ -63,3 +66,4 @@ fun HomeScreen(
 fun HomeScreenPreview() {
     HomeScreenContent(username = "PreviewUser")
 }
+
