@@ -19,7 +19,8 @@ data class PlantProfile(
     val health: String = "healthy",
     val lastWatered: Long = 0L,
     val lastFertilized: Long = 0L,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val photoUrl: String = ""
 )
 
 data class AvatarConfig(

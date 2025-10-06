@@ -74,7 +74,7 @@ fun PlantPalApp() {
             composable("profile") { CenterText("Profile (placeholder)") }
             composable("addPlant") {
                 AddPlantCaptureScreen(
-                    onSaved = { uri ->
+                    onSaved = { plantId ->
                         navController.popBackStack()
                     }
                 )
