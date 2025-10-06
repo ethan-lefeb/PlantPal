@@ -56,6 +56,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             )
         }
 
+
         composable("signup") {
             AccountCreationScreen(
                 onSuccess = {
