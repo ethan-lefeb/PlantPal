@@ -8,7 +8,35 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import androidx.compose.ui.tooling.preview.Preview
 
+// ✅ UI-only composable (easy to preview)
+@Composable
+fun HomeScreenContent(
+    username: String,
+    onSignOut: () -> Unit = {}
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Welcome, $username!",
+            style = MaterialTheme.typography.titleLarge
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Button(onClick = onSignOut) {
+            Text("Log out")
+        }
+    }
+}
+
+// ✅ Real screen (with ViewModel + NavController)
 @Composable
 fun HomeScreen(
     navController: NavHostController,
@@ -20,28 +48,21 @@ fun HomeScreen(
         username = AuthRepository.getCurrentUserName()
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = "Welcome, ${username ?: "User"}!",
-            style = MaterialTheme.typography.titleLarge
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Button(onClick = {
+    HomeScreenContent(
+        username = username ?: "User",
+        onSignOut = {
             viewModel.resetState()
             AuthRepository.signOut()
             navController.navigate("login") {
                 popUpTo("home") { inclusive = true }
             }
-        }) {
-            Text("Log out")
         }
-    }
+    )
+}
+
+// ✅ Preview
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun HomeScreenPreview() {
+    HomeScreenContent(username = "PreviewUser")
 }

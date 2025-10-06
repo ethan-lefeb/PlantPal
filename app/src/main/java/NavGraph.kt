@@ -23,7 +23,7 @@ fun AppNavGraph(navController: NavHostController) {
         }
 
         composable("login") {
-            LoginScreen(
+            LoginScreenPreview(
                 onSuccess = {
                     navController.navigate("home") {
                         popUpTo("login") { inclusive = true }
