@@ -1,20 +1,14 @@
 package com.example.plantpal
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.*
 
@@ -22,7 +16,7 @@ data class Tab(val route: String, val label: String, val icon: androidx.compose.
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlantPalApp() {
+fun PlantPalApp(onSignOut: () -> Unit) {
     val navController = rememberNavController()
     val tabs = listOf(
         Tab("home", "Home", Icons.Filled.Home),
@@ -30,6 +24,7 @@ fun PlantPalApp() {
         Tab("alerts", "Alerts", Icons.Filled.Notifications),
         Tab("profile", "Profile", Icons.Filled.AccountCircle),
     )
+
     Scaffold(
         bottomBar = {
             NavigationBar {
@@ -55,9 +50,7 @@ fun PlantPalApp() {
             val backStackEntry by navController.currentBackStackEntryAsState()
             val current = backStackEntry?.destination?.route
             if (current == "home") {
-                FloatingActionButton(
-                    onClick = { navController.navigate("addPlant") }
-                ) {
+                FloatingActionButton(onClick = { navController.navigate("addPlant") }) {
                     Icon(Icons.Default.Add, contentDescription = "Add Plant")
                 }
             }
@@ -68,17 +61,41 @@ fun PlantPalApp() {
             startDestination = "home",
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable("home")    { CenterText("Your plants will appear here 🌱\n\nTap + to add your first plant!") }
-            composable("library") { CenterText("Plant Library (placeholder)") }
-            composable("alerts")  { CenterText("Notifications (placeholder)") }
-            composable("profile") { CenterText("Profile (placeholder)") }
-            composable("addPlant") {
-                AddPlantCaptureScreen(
-                    onSaved = { plantId ->
-                        navController.popBackStack()
-                    }
-                )
+            composable("home") {
+                CenterText("Your plants will appear here 🌱\n\nTap + to add your first plant!")
             }
+            composable("library") { CenterText("Plant Library (placeholder)") }
+            composable("alerts") { CenterText("Notifications (placeholder)") }
+            composable("profile") {
+                ProfileScreen(onSignOut = onSignOut)
+            }
+            composable("addPlant") {
+                AddPlantCaptureScreen(onSaved = { navController.popBackStack() })
+            }
+        }
+    }
+}
+
+@Composable
+fun ProfileScreen(onSignOut: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Profile",
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(bottom = 32.dp)
+        )
+
+        Button(
+            onClick = onSignOut,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Sign Out")
         }
     }
 }

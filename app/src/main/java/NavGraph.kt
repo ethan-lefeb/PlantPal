@@ -23,7 +23,7 @@ fun AppNavGraph(navController: NavHostController) {
         }
 
         composable("login") {
-            LoginScreenPreview(
+            LoginScreen(
                 onSuccess = {
                     navController.navigate("home") {
                         popUpTo("login") { inclusive = true }
@@ -36,7 +36,14 @@ fun AppNavGraph(navController: NavHostController) {
         }
 
         composable("home") {
-            PlantPalApp()
+            PlantPalApp(
+                onSignOut = {
+                    AuthRepository.signOut()
+                    navController.navigate("login") {
+                        popUpTo("home") { inclusive = true } // clear backstack
+                    }
+                }
+            )
         }
     }
 }

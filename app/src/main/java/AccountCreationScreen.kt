@@ -3,34 +3,34 @@ package com.example.plantpal
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.launch
 
 @Composable
-fun AccountCreationScreen(
-    viewModel: AuthViewModel = viewModel(),
-    onSuccess: () -> Unit = {},
-    onNavigateToLogin: () -> Unit = {}
-) {
-    var email by rememberSaveable { mutableStateOf("") }
-    var password by rememberSaveable { mutableStateOf("") }
-    var displayName by rememberSaveable { mutableStateOf("") }
+fun AccountCreationScreen(onSuccess: () -> Unit, onNavigateToLogin: () -> Unit) {
+    val scope = rememberCoroutineScope()
 
-    val uiState by viewModel.uiState.collectAsState()
-
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var displayName by remember { mutableStateOf("") }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Center
+            .padding(16.dp)
     ) {
+        Text("Create Account", style = MaterialTheme.typography.headlineMedium)
+        Spacer(modifier = Modifier.height(24.dp))
+
         OutlinedTextField(
             value = displayName,
             onValueChange = { displayName = it },
             label = { Text("Display name") },
+            singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(8.dp))
@@ -39,6 +39,7 @@ fun AccountCreationScreen(
             value = email,
             onValueChange = { email = it },
             label = { Text("Email") },
+            singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(8.dp))
@@ -47,36 +48,52 @@ fun AccountCreationScreen(
             value = password,
             onValueChange = { password = it },
             label = { Text("Password") },
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(16.dp))
 
+        errorMessage?.let {
+            Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(bottom = 8.dp))
+        }
+
+        // Sign-up Button
         Button(
-            onClick = { viewModel.register(email.trim(), password, displayName.trim()) },
+            onClick = {
+                isLoading = true
+                errorMessage = null
+                scope.launch {
+                    val result = AuthRepository.registerUser(
+                        email.trim(),
+                        password,
+                        displayName.trim()
+                    )
+                    isLoading = false
+                    result.onSuccess { onSuccess() }
+                        .onFailure { e -> errorMessage = e.message ?: "Account creation failed" }
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
-            enabled = !uiState.isLoading
+            enabled = !isLoading,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            )
         ) {
-            Text("Sign up")
+            Text(if (isLoading) "Creating account..." else "Sign up")
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        TextButton(onClick = onNavigateToLogin) {
-            Text("Already have an account? Log in")
-        }
-
-        when {
-            uiState.isLoading -> CircularProgressIndicator()
-            uiState.error != null -> Text(
-                text = "Error: ${uiState.error}",
-                color = MaterialTheme.colorScheme.error
+        // TextButton for login
+        TextButton(
+            onClick = onNavigateToLogin,
+            colors = ButtonDefaults.textButtonColors(
+                contentColor = MaterialTheme.colorScheme.primary
             )
-            uiState.success -> {
-                LaunchedEffect(uiState.success) {
-                    onSuccess()
-                    viewModel.resetState()
-                }
-            }
+        ) {
+            Text("Already have an account? Log in")
         }
     }
 }
