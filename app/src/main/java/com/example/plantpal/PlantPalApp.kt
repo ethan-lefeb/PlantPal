@@ -16,7 +16,10 @@ data class Tab(val route: String, val label: String, val icon: androidx.compose.
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlantPalApp(onSignOut: () -> Unit) {
+fun PlantPalApp(
+    currentUserId: String,
+    onSignOut: () -> Unit
+) {
     val navController = rememberNavController()
     val tabs = listOf(
         Tab("home", "Home", Icons.Filled.Home),
@@ -35,7 +38,9 @@ fun PlantPalApp(onSignOut: () -> Unit) {
                         selected = current == tab.route,
                         onClick = {
                             navController.navigate(tab.route) {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
                                 launchSingleTop = true
                                 restoreState = true
                             }
@@ -61,16 +66,17 @@ fun PlantPalApp(onSignOut: () -> Unit) {
             startDestination = "home",
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable("home") {
-                CenterText("Your plants will appear here 🌱\n\nTap + to add your first plant!")
-            }
+            composable("home") { CenterText("Your plants will appear here 🌱\n\nTap + to add your first plant!") }
             composable("library") { CenterText("Plant Library (placeholder)") }
             composable("alerts") { CenterText("Notifications (placeholder)") }
-            composable("profile") {
-                ProfileScreen(onSignOut = onSignOut)
-            }
+            composable("profile") { ProfileScreen(onSignOut = onSignOut) }
+
             composable("addPlant") {
-                AddPlantCaptureScreen(onSaved = { navController.popBackStack() })
+                AddPlantCaptureScreen(
+                    apiKey = PlantIdSecret.API_KEY,
+                    currentUserId = currentUserId,
+                    onSaved = { navController.popBackStack() }
+                )
             }
         }
     }
@@ -79,35 +85,18 @@ fun PlantPalApp(onSignOut: () -> Unit) {
 @Composable
 fun ProfileScreen(onSignOut: () -> Unit) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
+        modifier = Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = "Profile",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(bottom = 32.dp)
-        )
-
-        Button(
-            onClick = onSignOut,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Sign Out")
-        }
+        Text("Profile", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(bottom = 32.dp))
+        Button(onClick = onSignOut, modifier = Modifier.fillMaxWidth()) { Text("Sign Out") }
     }
 }
 
 @Composable
 private fun CenterText(text: String) {
     Box(Modifier.fillMaxSize()) {
-        Text(
-            text = text,
-            modifier = Modifier.align(Alignment.Center),
-            textAlign = TextAlign.Center,
-            style = MaterialTheme.typography.bodyLarge
-        )
+        Text(text = text, modifier = Modifier.align(Alignment.Center), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyLarge)
     }
 }

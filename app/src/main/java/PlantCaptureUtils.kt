@@ -19,11 +19,12 @@ suspend fun savePlantProfileToFirebase(
     val plantProfile = PlantProfile(
         plantId = UUID.randomUUID().toString(),
         userId = userId,
-        commonName = suggestion.plant_name,
-        scientificName = suggestion.scientific_name,
-        confidence = suggestion.probability,
+        commonName = suggestion.plant_name ?: "Unknown",
+        scientificName = suggestion.plant_details?.scientific_name ?: "Unknown Species",
+        confidence = suggestion.probability ?: 0.0,
         photoUrl = downloadUrl
     )
+
 
     FirebaseFirestore.getInstance()
         .collection("plants")
