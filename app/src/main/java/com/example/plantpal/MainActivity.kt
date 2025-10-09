@@ -40,6 +40,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AppNavigation(modifier: Modifier = Modifier, startDestination: String = "start") {
     val navController = rememberNavController()
+    val currentUserId = AuthRepository.currentUserId() ?: "TEST_USER_123" // fallback for testing
 
     NavHost(
         navController = navController,
@@ -53,9 +54,7 @@ fun AppNavigation(modifier: Modifier = Modifier, startDestination: String = "sta
                 onSuccess = {
                     navController.navigate("home") { popUpTo("login") { inclusive = true } }
                 },
-                onNavigateToSignup = {
-                    navController.navigate("signup")
-                }
+                onNavigateToSignup = { navController.navigate("signup") }
             )
         }
 
@@ -64,20 +63,16 @@ fun AppNavigation(modifier: Modifier = Modifier, startDestination: String = "sta
                 onSuccess = {
                     navController.navigate("home") { popUpTo("signup") { inclusive = true } }
                 },
-                onNavigateToLogin = {
-                    navController.navigate("login")
-                }
+                onNavigateToLogin = { navController.navigate("login") }
             )
         }
 
-        // Pass top-level onSignOut callback to PlantPalApp
         composable("home") {
             PlantPalApp(
+                currentUserId = currentUserId,
                 onSignOut = {
                     AuthRepository.signOut()
-                    navController.navigate("login") {
-                        popUpTo("home") { inclusive = true } // clear backstack
-                    }
+                    navController.navigate("login") { popUpTo("home") { inclusive = true } }
                 }
             )
         }

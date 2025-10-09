@@ -12,9 +12,9 @@ data class PlantProfile(
     val color: String = "",
     val accessories: List<String> = emptyList(),
     val careProfile: CareProfile = CareProfile(),
-    val wateringFrequency: Int = 7, // days
+    val wateringFrequency: Int = 7,
     val sunlight: String = "",
-    val fertilizerFrequency: Int = 30, // days
+    val fertilizerFrequency: Int = 30,
     val currentStatus: CurrentStatus = CurrentStatus(),
     val health: String = "healthy",
     val lastWatered: Long = 0L,
