@@ -26,7 +26,7 @@ data class PlantDetails(
     val scientific_name: String? = null
 )
 
-// --- Base64 helper ---
+
 fun Uri.toBase64(context: Context): String? {
     return try {
         val inputStream: InputStream? = context.contentResolver.openInputStream(this)
@@ -39,7 +39,7 @@ fun Uri.toBase64(context: Context): String? {
     }
 }
 
-// --- Plant.ID API call ---
+
 suspend fun identifyPlantSuspend(context: Context, imageUri: Uri, apiKey: String): PlantIdResponse? {
     val client = OkHttpClient()
     val base64Image = imageUri.toBase64(context) ?: return null

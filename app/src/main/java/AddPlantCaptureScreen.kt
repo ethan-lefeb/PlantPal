@@ -18,7 +18,6 @@ import coil.compose.rememberAsyncImagePainter
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.io.File
-import java.util.*
 
 @Composable
 fun AddPlantCaptureScreen(
@@ -36,15 +35,20 @@ fun AddPlantCaptureScreen(
     var identifiedPlant by remember { mutableStateOf<Suggestion?>(null) }
     var savedPlantId by remember { mutableStateOf<String?>(null) }
 
-    // --- Gallery picker ---
+    // pick from gallery
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         uri?.let { selected ->
             imageUri = selected
             scope.launch {
-                processPlant(context, selected, apiKey, currentUserId, plantRepository,
-                    onSaved = { savedPlantId = it; onSaved(it) },
+                handlePlantProcessing(
+                    context = context,
+                    uri = selected,
+                    apiKey = apiKey,
+                    userId = currentUserId,
+                    plantRepository = plantRepository,
+                    onSaved = { savedId -> savedPlantId = savedId; onSaved(savedId) },
                     setLoading = { isLoading = it },
                     setSuggestion = { identifiedPlant = it },
                     setError = { error = it }
@@ -53,7 +57,7 @@ fun AddPlantCaptureScreen(
         }
     }
 
-    // --- Camera capture ---
+    // camera capture
     val tempPhotoFile = remember {
         File(context.cacheDir, "photo_${System.currentTimeMillis()}.jpg").apply { createNewFile() }
     }
@@ -68,8 +72,13 @@ fun AddPlantCaptureScreen(
         if (success) {
             imageUri = tempUri
             scope.launch {
-                processPlant(context, tempUri, apiKey, currentUserId, plantRepository,
-                    onSaved = { savedPlantId = it; onSaved(it) },
+                handlePlantProcessing(
+                    context = context,
+                    uri = tempUri,
+                    apiKey = apiKey,
+                    userId = currentUserId,
+                    plantRepository = plantRepository,
+                    onSaved = { savedId -> savedPlantId = savedId; onSaved(savedId) },
                     setLoading = { isLoading = it },
                     setSuggestion = { identifiedPlant = it },
                     setError = { error = it }
@@ -78,7 +87,7 @@ fun AddPlantCaptureScreen(
         }
     }
 
-    // --- UI ---
+    // UI
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -99,8 +108,12 @@ fun AddPlantCaptureScreen(
                 )
             } else {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    TextButton(onClick = { galleryLauncher.launch("image/*") }) { Text("Pick from Gallery") }
-                    TextButton(onClick = { cameraLauncher.launch(tempUri) }) { Text("Take Photo") }
+                    TextButton(onClick = { galleryLauncher.launch("image/*") }) {
+                        Text("Pick from Gallery")
+                    }
+                    TextButton(onClick = { cameraLauncher.launch(tempUri) }) {
+                        Text("Take Photo")
+                    }
                 }
             }
         }
@@ -125,7 +138,8 @@ fun AddPlantCaptureScreen(
     }
 }
 
-private suspend fun processPlant(
+
+private suspend fun handlePlantProcessing(
     context: Context,
     uri: Uri,
     apiKey: String,
@@ -140,22 +154,24 @@ private suspend fun processPlant(
         setLoading(true)
         setError(null)
 
-        // --- Identify ---
+        // identifies plant
         val response = identifyPlantSuspend(context, uri, apiKey)
         val suggestion = response?.suggestions?.firstOrNull()
+
         if (suggestion == null) {
             setError("Could not identify plant. Try a clearer photo or check your API key.")
             return
         }
+
         setSuggestion(suggestion)
 
-        // --- Upload image ---
+        // uploads image to firebase
         val storageRef = com.google.firebase.storage.FirebaseStorage.getInstance().reference
-            .child("plants/${UUID.randomUUID()}.jpg")
+            .child("plants/${java.util.UUID.randomUUID()}.jpg")
         storageRef.putFile(uri).await()
-        val downloadUrl = storageRef.downloadUrl.await().toString()
+        val downloadUrl = storageRef.downloadUrl.await()?.toString() ?: ""
 
-        // --- Save to Firestore ---
+        // creates PlantProfile
         val newPlant = PlantProfile(
             userId = userId,
             commonName = suggestion.plant_name ?: "Unknown",
@@ -163,9 +179,21 @@ private suspend fun processPlant(
             confidence = suggestion.probability ?: 0.0,
             photoUrl = downloadUrl
         )
+
+        // saves under user collection
         val result = plantRepository.addPlant(newPlant)
-        result.onSuccess { onSaved(it) }
-            .onFailure { setError(it.message ?: "Error saving to Firebase") }
+        result.onSuccess { id ->
+
+            val firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+            firestore.collection("plants")
+                .document(id)
+                .set(newPlant.copy(plantId = id))
+                .await()
+            onSaved(id)
+
+        }.onFailure { e ->
+            setError(e.message ?: "Error saving to Firebase")
+        }
 
     } catch (e: Exception) {
         e.printStackTrace()

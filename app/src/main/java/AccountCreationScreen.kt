@@ -58,7 +58,6 @@ fun AccountCreationScreen(onSuccess: () -> Unit, onNavigateToLogin: () -> Unit) 
             Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(bottom = 8.dp))
         }
 
-        // Sign-up Button
         Button(
             onClick = {
                 isLoading = true
@@ -86,7 +85,6 @@ fun AccountCreationScreen(onSuccess: () -> Unit, onNavigateToLogin: () -> Unit) 
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // TextButton for login
         TextButton(
             onClick = onNavigateToLogin,
             colors = ButtonDefaults.textButtonColors(

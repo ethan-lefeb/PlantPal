@@ -14,7 +14,7 @@ class PlantRepository {
             .document(auth.currentUser?.uid ?: "")
             .collection("plants")
 
-    // Create a new plant
+    // create a new plant
     suspend fun addPlant(plant: PlantProfile): Result<String> {
         return try {
             val userId = auth.currentUser?.uid
@@ -44,7 +44,7 @@ class PlantRepository {
         }
     }
 
-    // Get all plants for current user
+    // get all plants for current user
     suspend fun getAllPlants(): Result<List<PlantProfile>> {
         return try {
             val userId = auth.currentUser?.uid
@@ -70,7 +70,7 @@ class PlantRepository {
         }
     }
 
-    // Get a specific plant by ID
+    // get a specific plant by ID
     suspend fun getPlant(plantId: String): Result<PlantProfile> {
         return try {
             Log.d("PlantRepo", "Getting plant: $plantId")
@@ -91,7 +91,7 @@ class PlantRepository {
         }
     }
 
-    // Update an existing plant
+    // update an existing plant
     suspend fun updatePlant(plant: PlantProfile): Result<Unit> {
         return try {
             if (plant.plantId.isEmpty()) {
@@ -110,7 +110,7 @@ class PlantRepository {
         }
     }
 
-    // Delete a plant
+    // delete a plant
     suspend fun deletePlant(plantId: String): Result<Unit> {
         return try {
             Log.d("PlantRepo", "Deleting plant: $plantId")
@@ -124,7 +124,7 @@ class PlantRepository {
         }
     }
 
-    // Update watering timestamp
+    // update watering timestamp
     suspend fun waterPlant(plantId: String): Result<Unit> {
         return try {
             val currentTime = System.currentTimeMillis()
@@ -142,7 +142,7 @@ class PlantRepository {
         }
     }
 
-    // Update fertilizing timestamp
+    // update fertilizing timestamp
     suspend fun fertilizePlant(plantId: String): Result<Unit> {
         return try {
             val currentTime = System.currentTimeMillis()
@@ -160,7 +160,7 @@ class PlantRepository {
         }
     }
 
-    // Update health status
+    // update health status
     suspend fun updateHealthStatus(plantId: String, health: String): Result<Unit> {
         return try {
             Log.d("PlantRepo", "Updating health status for plant: $plantId to $health")

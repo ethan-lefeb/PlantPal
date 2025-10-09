@@ -10,7 +10,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.compose.ui.tooling.preview.Preview
 
-// ✅ UI-only composable (easy to preview)
 @Composable
 fun HomeScreenContent(
     username: String,
@@ -36,7 +35,6 @@ fun HomeScreenContent(
     }
 }
 
-// ✅ Real screen (with ViewModel + NavController)
 @Composable
 fun HomeScreen(
     navController: NavHostController,
@@ -60,7 +58,6 @@ fun HomeScreen(
     )
 }
 
-// ✅ Preview
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun HomeScreenPreview() {
