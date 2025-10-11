@@ -1,13 +1,25 @@
 package com.example.plantpal
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 
 @Composable
-fun AppNavGraph(navController: NavHostController) {
-    NavHost(navController = navController, startDestination = "signup") {
+fun AppNavGraph(
+    navController: NavHostController,
+    modifier: Modifier = Modifier
+) {
+    NavHost(
+        navController = navController,
+        startDestination = "StartScreen",
+        modifier = modifier
+    ) {
+
+        composable("StartScreen") {
+            StartScreen(navController = navController)
+        }
 
         composable("signup") {
             AccountCreationScreen(
@@ -16,9 +28,7 @@ fun AppNavGraph(navController: NavHostController) {
                         popUpTo("signup") { inclusive = true }
                     }
                 },
-                onNavigateToLogin = {
-                    navController.navigate("login")
-                }
+                onNavigateToLogin = { navController.navigate("login") }
             )
         }
 
@@ -29,25 +39,12 @@ fun AppNavGraph(navController: NavHostController) {
                         popUpTo("login") { inclusive = true }
                     }
                 },
-                onNavigateToSignup = {
-                    navController.navigate("signup")
-                }
+                onNavigateToSignup = { navController.navigate("signup") }
             )
         }
 
         composable("home") {
-            val currentUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
-            val currentUserId = currentUser?.uid ?: "TEST_USER_123" // fallback for testing
-
-            PlantPalApp(
-                currentUserId = currentUserId,
-                onSignOut = {
-                    AuthRepository.signOut()
-                    navController.navigate("login") {
-                        popUpTo("home") { inclusive = true } // clear backstack
-                    }
-                }
-            )
+            HomeScreen(navController = navController)
         }
     }
 }
