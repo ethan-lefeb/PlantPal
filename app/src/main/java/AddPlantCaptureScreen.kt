@@ -35,29 +35,32 @@ fun AddPlantCaptureScreen(
     var identifiedPlant by remember { mutableStateOf<Suggestion?>(null) }
     var savedPlantId by remember { mutableStateOf<String?>(null) }
 
-    // pick from gallery
+    var customName by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
+    var showSaveButton by remember { mutableStateOf(false) }
+
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         uri?.let { selected ->
             imageUri = selected
             scope.launch {
-                handlePlantProcessing(
+                handlePlantIdentification(
                     context = context,
                     uri = selected,
                     apiKey = apiKey,
-                    userId = currentUserId,
-                    plantRepository = plantRepository,
-                    onSaved = { savedId -> savedPlantId = savedId; onSaved(savedId) },
                     setLoading = { isLoading = it },
-                    setSuggestion = { identifiedPlant = it },
+                    setSuggestion = { suggestion ->
+                        identifiedPlant = suggestion
+                        customName = suggestion?.plant_name ?: "Unknown Plant"
+                        showSaveButton = true
+                    },
                     setError = { error = it }
                 )
             }
         }
     }
 
-    // camera capture
     val tempPhotoFile = remember {
         File(context.cacheDir, "photo_${System.currentTimeMillis()}.jpg").apply { createNewFile() }
     }
@@ -72,31 +75,35 @@ fun AddPlantCaptureScreen(
         if (success) {
             imageUri = tempUri
             scope.launch {
-                handlePlantProcessing(
+                handlePlantIdentification(
                     context = context,
                     uri = tempUri,
                     apiKey = apiKey,
-                    userId = currentUserId,
-                    plantRepository = plantRepository,
-                    onSaved = { savedId -> savedPlantId = savedId; onSaved(savedId) },
                     setLoading = { isLoading = it },
-                    setSuggestion = { identifiedPlant = it },
+                    setSuggestion = { suggestion ->
+                        identifiedPlant = suggestion
+                        customName = suggestion?.plant_name ?: "Unknown Plant"
+                        showSaveButton = true
+                    },
                     setError = { error = it }
                 )
             }
         }
     }
 
-    // UI
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text("Add a new plant", style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(24.dp))
 
         Box(
-            modifier = Modifier.height(220.dp).fillMaxWidth(),
+            modifier = Modifier
+                .height(220.dp)
+                .fillMaxWidth(),
             contentAlignment = Alignment.Center
         ) {
             if (imageUri != null) {
@@ -122,30 +129,116 @@ fun AddPlantCaptureScreen(
 
         when {
             isLoading -> CircularProgressIndicator()
-            identifiedPlant != null -> {
-                val suggestion = identifiedPlant!!
-                Text("🌿 ${suggestion.plant_name ?: "Unknown"}", style = MaterialTheme.typography.titleLarge)
-                Text(suggestion.plant_details?.scientific_name ?: "Unknown Species", style = MaterialTheme.typography.bodyMedium)
-                Text("Confidence: ${(suggestion.probability ?: 0.0 * 100).toInt()}%", style = MaterialTheme.typography.bodySmall)
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    if (savedPlantId != null) "Saved to your collection ✅" else "Identified successfully!",
-                    color = MaterialTheme.colorScheme.primary
-                )
+
+            identifiedPlant != null && !showSaveButton -> {
+                CircularProgressIndicator()
             }
-            error != null -> Text(error!!, color = MaterialTheme.colorScheme.error)
+
+            identifiedPlant != null && showSaveButton -> {
+                val suggestion = identifiedPlant!!
+
+                Text("🌿 Identified!", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.height(8.dp))
+
+                Text(
+                    suggestion.plant_details?.scientific_name ?: "Unknown Species",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    "Confidence: ${((suggestion.probability ?: 0.0) * 100).toInt()}%",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(Modifier.height(16.dp))
+                Divider()
+                Spacer(Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = customName,
+                    onValueChange = { customName = it },
+                    label = { Text("Plant Name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { notes = it },
+                    label = { Text("Notes (optional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
+                    maxLines = 5
+                )
+
+                Spacer(Modifier.height(16.dp))
+
+                if (savedPlantId != null) {
+                    Text("Saved to your collection ✅", color = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.height(16.dp))
+
+                    Button(
+                        onClick = { onSaved(savedPlantId!!) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("View My Plants")
+                    }
+                } else {
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                handlePlantSaving(
+                                    context = context,
+                                    uri = imageUri!!,
+                                    plantName = customName.trim(),
+                                    scientificName = suggestion.plant_details?.scientific_name ?: "Unknown Species",
+                                    confidence = suggestion.probability ?: 0.0,
+                                    notes = notes.trim(),
+                                    userId = currentUserId,
+                                    plantRepository = plantRepository,
+                                    onSaved = { savedId -> savedPlantId = savedId },
+                                    setLoading = { isLoading = it },
+                                    setError = { error = it }
+                                )
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = customName.isNotBlank()
+                    ) {
+                        Text("Save Plant")
+                    }
+                }
+            }
+
+            error != null -> {
+                Text(error!!, color = MaterialTheme.colorScheme.error)
+                Spacer(Modifier.height(16.dp))
+
+                Button(
+                    onClick = {
+                        imageUri = null
+                        error = null
+                        identifiedPlant = null
+                        showSaveButton = false
+                        customName = ""
+                        notes = ""
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Try Again")
+                }
+            }
         }
     }
 }
 
-
-private suspend fun handlePlantProcessing(
+private suspend fun handlePlantIdentification(
     context: Context,
     uri: Uri,
     apiKey: String,
-    userId: String,
-    plantRepository: PlantRepository,
-    onSaved: (String) -> Unit,
     setLoading: (Boolean) -> Unit,
     setSuggestion: (Suggestion?) -> Unit,
     setError: (String?) -> Unit
@@ -154,43 +247,64 @@ private suspend fun handlePlantProcessing(
         setLoading(true)
         setError(null)
 
-        // identifies plant
         val response = identifyPlantSuspend(context, uri, apiKey)
         val suggestion = response?.suggestions?.firstOrNull()
 
         if (suggestion == null) {
             setError("Could not identify plant. Try a clearer photo or check your API key.")
-            return
+            setSuggestion(null)
+        } else {
+            setSuggestion(suggestion)
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+        setError("An error occurred: ${e.message}")
+        setSuggestion(null)
+    } finally {
+        setLoading(false)
+    }
+}
+
+private suspend fun handlePlantSaving(
+    context: Context,
+    uri: Uri,
+    plantName: String,
+    scientificName: String,
+    confidence: Double,
+    notes: String,
+    userId: String,
+    plantRepository: PlantRepository,
+    onSaved: (String) -> Unit,
+    setLoading: (Boolean) -> Unit,
+    setError: (String?) -> Unit
+) {
+    try {
+        setLoading(true)
+        setError(null)
+
+        var downloadUrl = ""
+        try {
+            val storageRef = com.google.firebase.storage.FirebaseStorage.getInstance().reference
+                .child("plants/${java.util.UUID.randomUUID()}.jpg")
+            storageRef.putFile(uri).await()
+            downloadUrl = storageRef.downloadUrl.await()?.toString() ?: ""
+        } catch (storageException: Exception) {
+            android.util.Log.w("AddPlant", "Storage upload failed, saving plant without remote photo: ${storageException.message}")
+            downloadUrl = uri.toString()
         }
 
-        setSuggestion(suggestion)
-
-        // uploads image to firebase
-        val storageRef = com.google.firebase.storage.FirebaseStorage.getInstance().reference
-            .child("plants/${java.util.UUID.randomUUID()}.jpg")
-        storageRef.putFile(uri).await()
-        val downloadUrl = storageRef.downloadUrl.await()?.toString() ?: ""
-
-        // creates PlantProfile
         val newPlant = PlantProfile(
             userId = userId,
-            commonName = suggestion.plant_name ?: "Unknown",
-            scientificName = suggestion.plant_details?.scientific_name ?: "Unknown Species",
-            confidence = suggestion.probability ?: 0.0,
+            commonName = plantName,
+            scientificName = scientificName,
+            confidence = confidence,
+            notes = notes,
             photoUrl = downloadUrl
         )
 
-        // saves under user collection
         val result = plantRepository.addPlant(newPlant)
         result.onSuccess { id ->
-
-            val firestore = com.google.firebase.firestore.FirebaseFirestore.getInstance()
-            firestore.collection("plants")
-                .document(id)
-                .set(newPlant.copy(plantId = id))
-                .await()
             onSaved(id)
-
         }.onFailure { e ->
             setError(e.message ?: "Error saving to Firebase")
         }

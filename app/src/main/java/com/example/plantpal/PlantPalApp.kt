@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.*
 
@@ -66,7 +67,15 @@ fun PlantPalApp(
             startDestination = "home",
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable("home") { CenterText("Your plants will appear here 🌱\n\nTap + to add your first plant!") }
+            composable("home") {
+                val plantsViewModel: PlantsViewModel = viewModel()
+
+                LaunchedEffect(Unit) {
+                    plantsViewModel.loadPlants()
+                }
+
+                PlantsHomeScreen(viewModel = plantsViewModel)
+            }
             composable("library") { CenterText("Plant Library (placeholder)") }
             composable("alerts") { CenterText("Notifications (placeholder)") }
             composable("profile") { ProfileScreen(onSignOut = onSignOut) }
@@ -75,7 +84,9 @@ fun PlantPalApp(
                 AddPlantCaptureScreen(
                     apiKey = PlantIdSecret.API_KEY,
                     currentUserId = currentUserId,
-                    onSaved = { navController.popBackStack() }
+                    onSaved = {
+                        navController.popBackStack()
+                    }
                 )
             }
         }
