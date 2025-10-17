@@ -46,7 +46,7 @@ fun HomeScreenContent(
         ) {
             //
             Text(
-                text = "🌿 Welcome back, $username!",
+                text = "Welcome back, $username!",
                 style = MaterialTheme.typography.headlineSmall.copy(
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF2F5233)
@@ -78,7 +78,7 @@ fun HomeScreenContent(
 
             Button(
                 onClick = onSignOut,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF76C893)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F61)),
                 shape = RoundedCornerShape(50)
             ) {
                 Text("Log out", color = Color.White)
