@@ -62,7 +62,7 @@ fun LoginScreen(
             )
 
             Text(
-                text = "Welcome, ${fakeUiState.username}! 🌱",
+                text = "Welcome, ${fakeUiState.username}!",
                 style = MaterialTheme.typography.headlineSmall.copy(
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF2F5233)
@@ -96,7 +96,7 @@ fun LoginScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF76C893)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F61)),
                 shape = RoundedCornerShape(50)
             ) {
                 Text("Log in", color = Color.White, fontWeight = FontWeight.SemiBold)
