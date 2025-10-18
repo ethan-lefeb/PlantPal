@@ -111,3 +111,5 @@ private fun saveBitmapToCache(context: Context, bmp: Bitmap): Uri {
         file
     )
 }
+
+annotation class AddPlantCaptureScreen

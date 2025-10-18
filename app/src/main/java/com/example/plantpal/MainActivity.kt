@@ -18,7 +18,9 @@ class MainActivity : ComponentActivity() {
             PlantPalTheme {
                 val navController = rememberNavController()
 
-                Scaffold { innerPadding ->
+                Scaffold {
+
+                    innerPadding ->
                     AppNavGraph(
                         navController = navController,
 

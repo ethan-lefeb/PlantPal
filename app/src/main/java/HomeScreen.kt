@@ -76,15 +76,8 @@ fun HomeScreenContent(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            Button(
-                onClick = onSignOut,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F61)),
-                shape = RoundedCornerShape(50)
-            ) {
-                Text("Log out", color = Color.White)
-            }
 
-            Spacer(modifier = Modifier.height(24.dp))
+
             
             Text(
                 text = "“Plants give us oxygen for the lungs and the soul.”",
