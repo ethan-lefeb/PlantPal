@@ -5,6 +5,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.example.plantpal.AddPlantCaptureScreen
 
 @Composable
 fun AppNavGraph(
@@ -16,7 +17,7 @@ fun AppNavGraph(
         startDestination = "StartScreen",
         modifier = modifier
     ) {
-
+        // 🌱 Start / Auth Screens
         composable("StartScreen") {
             StartScreen(navController = navController)
         }
@@ -43,8 +44,26 @@ fun AppNavGraph(
             )
         }
 
+        // 🌿 Main App Screens (with Bottom Nav)
         composable("home") {
             HomeScreen(navController = navController)
         }
+
+        composable(route = "addPlant") {
+            AddPlantCaptureScreen(
+                onSaved = { uri ->
+                    // Navigate back to home after saving
+                    navController.navigate("home") {
+                        popUpTo("addPlant") { inclusive = true }
+                    }
+                }
+            )
+        }
+
+
+        composable("profile") {
+            PlantProfile(navController = navController)
+        }
+
     }
 }
