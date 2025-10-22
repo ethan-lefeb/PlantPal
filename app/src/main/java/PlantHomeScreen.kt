@@ -1,6 +1,7 @@
 package com.example.plantpal
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -64,7 +65,8 @@ class PlantsViewModel : ViewModel() {
 
 @Composable
 fun PlantsHomeScreen(
-    viewModel: PlantsViewModel = viewModel()
+    viewModel: PlantsViewModel = viewModel(),
+    onPlantClick: (String) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -131,7 +133,8 @@ fun PlantsHomeScreen(
                     items(uiState.plants) { plant ->
                         PlantCard(
                             plant = plant,
-                            onDelete = { viewModel.deletePlant(it) }
+                            onDelete = { viewModel.deletePlant(it) },
+                            onClick = { onPlantClick(plant.plantId) }
                         )
                     }
                 }
@@ -143,12 +146,15 @@ fun PlantsHomeScreen(
 @Composable
 fun PlantCard(
     plant: PlantProfile,
-    onDelete: (PlantProfile) -> Unit
+    onDelete: (PlantProfile) -> Unit,
+    onClick: () -> Unit = {}
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -196,9 +202,19 @@ fun PlantCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+
+                if (plant.careInfo.wateringMaxDays != null) {
+                    Text(
+                        text = "💧 Water every ${plant.careInfo.wateringMinDays}-${plant.careInfo.wateringMaxDays} days",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
 
-            IconButton(onClick = { showDeleteDialog = true }) {
+            IconButton(
+                onClick = { showDeleteDialog = true }
+            ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = "Delete plant",
