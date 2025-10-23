@@ -137,7 +137,11 @@ fun AddPlantCaptureScreen(
             identifiedPlant != null && showSaveButton -> {
                 val suggestion = identifiedPlant!!
 
-                Text("🌿 Identified!", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    "🌿 Identified!",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
                 Spacer(Modifier.height(8.dp))
 
                 Text(
@@ -150,6 +154,25 @@ fun AddPlantCaptureScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                suggestion.plant_details?.let { details ->
+                    Spacer(Modifier.height(8.dp))
+
+                    if (details.watering != null) {
+                        Text(
+                            "💧 Water every ${details.watering.min}-${details.watering.max} days",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    if (details.common_names?.isNotEmpty() == true) {
+                        Text(
+                            "Also known as: ${details.common_names.take(3).joinToString(", ")}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
 
                 Spacer(Modifier.height(16.dp))
                 Divider()
@@ -177,7 +200,10 @@ fun AddPlantCaptureScreen(
                 Spacer(Modifier.height(16.dp))
 
                 if (savedPlantId != null) {
-                    Text("Saved to your collection ✅", color = MaterialTheme.colorScheme.primary)
+                    Text(
+                        "Saved to your collection ✅",
+                        color = MaterialTheme.colorScheme.primary
+                    )
                     Spacer(Modifier.height(16.dp))
 
                     Button(
@@ -199,6 +225,7 @@ fun AddPlantCaptureScreen(
                                     notes = notes.trim(),
                                     userId = currentUserId,
                                     plantRepository = plantRepository,
+                                    suggestion = suggestion,
                                     onSaved = { savedId -> savedPlantId = savedId },
                                     setLoading = { isLoading = it },
                                     setError = { error = it }
@@ -274,6 +301,7 @@ private suspend fun handlePlantSaving(
     notes: String,
     userId: String,
     plantRepository: PlantRepository,
+    suggestion: Suggestion,
     onSaved: (String) -> Unit,
     setLoading: (Boolean) -> Unit,
     setError: (String?) -> Unit
@@ -293,13 +321,37 @@ private suspend fun handlePlantSaving(
             downloadUrl = uri.toString()
         }
 
+        val careInfo = suggestion.toCareInfo().copy(
+            cycle = PlantCareDefaults.getCycle(suggestion.plant_details?.taxonomy?.family),
+            watering = PlantCareDefaults.getWateringFrequency(suggestion.plant_details?.taxonomy?.family),
+            indoor = PlantCareDefaults.isIndoorPlant(suggestion.plant_details?.taxonomy?.family),
+            careLevel = PlantCareDefaults.getCareLevel(suggestion.plant_details?.taxonomy?.family),
+            droughtTolerant = PlantCareDefaults.isDroughtTolerant(suggestion.plant_details?.taxonomy?.family)
+        )
+
+        val wateringFrequency = if (careInfo.wateringMaxDays != null) {
+            careInfo.wateringMaxDays
+        } else {
+            PlantCareDefaults.getWateringFrequencyDays(careInfo.family, careInfo.genus)
+        }
+        val sunlightReq = PlantCareDefaults.getSunlightRequirement(careInfo.family, careInfo.genus)
+        val fertilizerFreq = PlantCareDefaults.getFertilizerFrequency(careInfo.family)
         val newPlant = PlantProfile(
             userId = userId,
             commonName = plantName,
             scientificName = scientificName,
             confidence = confidence,
             notes = notes,
-            photoUrl = downloadUrl
+            photoUrl = downloadUrl,
+            careInfo = careInfo,
+            wateringFrequency = wateringFrequency,
+            sunlight = sunlightReq,
+            fertilizerFrequency = fertilizerFreq,
+            careProfile = CareProfile(
+                wateringFrequency = wateringFrequency,
+                sunlight = sunlightReq,
+                fertilizerFrequency = fertilizerFreq
+            )
         )
 
         val result = plantRepository.addPlant(newPlant)

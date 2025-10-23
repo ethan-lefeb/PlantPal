@@ -69,7 +69,7 @@ class PlantsViewModel : ViewModel() {
 @Composable
 fun PlantsHomeScreen(
     viewModel: PlantsViewModel = viewModel(),
-    onPlantClick: (String) -> Unit // 👈 callback for navigation
+    onPlantClick: (String) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -137,7 +137,7 @@ fun PlantsHomeScreen(
                         PlantCard(
                             plant = plant,
                             onDelete = { viewModel.deletePlant(it) },
-                            onClick = { onPlantClick(plant.plantId) } // 👈 navigate to details
+                            onClick = { onPlantClick(plant.plantId) }
                         )
                     }
                 }
@@ -151,15 +151,14 @@ fun PlantsHomeScreen(
 fun PlantCard(
     plant: PlantProfile,
     onDelete: (PlantProfile) -> Unit,
-    onClick: () -> Unit // 👈 new parameter for navigation
+    onClick: () -> Unit = {}
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() } // 👈 go to detail screen when tapped
-            .padding(0.dp),
+            .clickable { onClick() },
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -203,9 +202,19 @@ fun PlantCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+
+                if (plant.careInfo.wateringMaxDays != null) {
+                    Text(
+                        text = "💧 Water every ${plant.careInfo.wateringMinDays}-${plant.careInfo.wateringMaxDays} days",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
 
-            IconButton(onClick = { showDeleteDialog = true }) {
+            IconButton(
+                onClick = { showDeleteDialog = true }
+            ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = "Delete plant",
