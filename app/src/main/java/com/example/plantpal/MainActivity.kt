@@ -92,6 +92,7 @@ fun AppNavigation(modifier: Modifier = Modifier, startDestination: String = "sta
         startDestination = startDestination,
         modifier = modifier
     ) {
+        // --- AUTH SCREENS ---
         composable("start") { HomeScreen(navController) }
 
         composable("login") {
@@ -112,6 +113,7 @@ fun AppNavigation(modifier: Modifier = Modifier, startDestination: String = "sta
             )
         }
 
+        // --- MAIN APP HOME ---
         composable("home") {
             PlantPalApp(
                 currentUserId = currentUserId,
@@ -119,6 +121,19 @@ fun AppNavigation(modifier: Modifier = Modifier, startDestination: String = "sta
                     AuthRepository.signOut()
                     navController.navigate("login") { popUpTo("home") { inclusive = true } }
                 }
+            )
+        }
+
+        // --- PLANT DETAIL SCREEN ---
+        composable(
+            route = "plantDetail/{plantId}",
+            arguments = listOf(navArgument("plantId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val plantId = backStackEntry.arguments?.getString("plantId") ?: return@composable
+            PlantDetailScreen(
+                plantId = plantId,
+                userId = currentUserId,
+                onBack = { navController.popBackStack() }
             )
         }
     }

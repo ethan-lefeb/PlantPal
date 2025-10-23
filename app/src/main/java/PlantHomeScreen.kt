@@ -23,12 +23,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+// --- UI STATE ---
 data class PlantsUiState(
     val plants: List<PlantProfile> = emptyList(),
     val isLoading: Boolean = true,
     val error: String? = null
 )
 
+// --- VIEWMODEL ---
 class PlantsViewModel : ViewModel() {
     private val repository = PlantRepository()
     private val _uiState = MutableStateFlow(PlantsUiState())
@@ -63,6 +65,7 @@ class PlantsViewModel : ViewModel() {
     }
 }
 
+// --- MAIN SCREEN ---
 @Composable
 fun PlantsHomeScreen(
     viewModel: PlantsViewModel = viewModel(),
@@ -143,6 +146,7 @@ fun PlantsHomeScreen(
     }
 }
 
+// --- CARD ---
 @Composable
 fun PlantCard(
     plant: PlantProfile,
@@ -167,14 +171,12 @@ fun PlantCard(
                 Image(
                     painter = rememberAsyncImagePainter(plant.photoUrl),
                     contentDescription = plant.commonName,
-                    modifier = Modifier
-                        .size(80.dp),
+                    modifier = Modifier.size(80.dp),
                     contentScale = ContentScale.Crop
                 )
             } else {
                 Box(
-                    modifier = Modifier
-                        .size(80.dp),
+                    modifier = Modifier.size(80.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text("🌿", style = MaterialTheme.typography.displayMedium)
@@ -183,9 +185,7 @@ fun PlantCard(
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = plant.commonName,
                     style = MaterialTheme.typography.titleMedium

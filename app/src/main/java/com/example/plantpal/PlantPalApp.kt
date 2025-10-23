@@ -24,6 +24,7 @@ fun PlantPalApp(
     onSignOut: () -> Unit
 ) {
     val navController = rememberNavController()
+
     val tabs = listOf(
         Tab("home", "Home", Icons.Filled.Home),
         Tab("library", "Library", Icons.Filled.Star),
@@ -61,7 +62,7 @@ fun PlantPalApp(
             val backStackEntry by navController.currentBackStackEntryAsState()
             val current = backStackEntry?.destination?.route
             if (current == "home") {
-                FloatingActionButton(onClick = { navController.navigate("addPlant") }) {
+                FloatingActionButton(onClick = { navController.navigate("addPlant/$currentUserId") }) {
                     Icon(Icons.Default.Add, contentDescription = "Add Plant")
                 }
             }
@@ -74,6 +75,13 @@ fun PlantPalApp(
         ) {
             composable("home") {
                 val plantsViewModel: PlantsViewModel = viewModel()
+                PlantsHomeScreen(
+                    viewModel = plantsViewModel,
+                    onPlantClick = { plantId ->
+                        navController.navigate("plantDetail/$currentUserId/$plantId")
+                    }
+                )
+            }
 
                 LaunchedEffect(Unit) {
                     plantsViewModel.loadPlants()
@@ -91,12 +99,17 @@ fun PlantPalApp(
             composable("alerts") { CenterText("Notifications (placeholder)") }
             composable("profile") { ProfileScreen(onSignOut = onSignOut) }
 
-            composable("addPlant") {
+            composable(
+                route = "addPlant/{userId}",
+                arguments = listOf(navArgument("userId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId") ?: return@composable
                 AddPlantCaptureScreen(
                     apiKey = PlantIdSecret.API_KEY,
-                    currentUserId = currentUserId,
-                    onSaved = {
-                        navController.popBackStack()
+                    currentUserId = userId,
+                    onSaved = { savedPlantId ->
+                        // Return to home after saving
+                        navController.popBackStack("home", inclusive = false)
                     }
                 )
             }
@@ -162,18 +175,32 @@ fun PlantDetailScreenWrapper(
 @Composable
 fun ProfileScreen(onSignOut: () -> Unit) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Profile", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(bottom = 32.dp))
-        Button(onClick = onSignOut, modifier = Modifier.fillMaxWidth()) { Text("Sign Out") }
+        Text(
+            "Profile",
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(bottom = 32.dp)
+        )
+        Button(
+            onClick = onSignOut,
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Sign Out") }
     }
 }
 
 @Composable
 private fun CenterText(text: String) {
     Box(Modifier.fillMaxSize()) {
-        Text(text = text, modifier = Modifier.align(Alignment.Center), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyLarge)
+        Text(
+            text = text,
+            modifier = Modifier.align(Alignment.Center),
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodyLarge
+        )
     }
 }
