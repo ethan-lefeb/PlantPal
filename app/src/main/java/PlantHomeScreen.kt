@@ -1,6 +1,7 @@
 package com.example.plantpal
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -22,12 +23,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+// --- UI STATE ---
 data class PlantsUiState(
     val plants: List<PlantProfile> = emptyList(),
     val isLoading: Boolean = true,
     val error: String? = null
 )
 
+// --- VIEWMODEL ---
 class PlantsViewModel : ViewModel() {
     private val repository = PlantRepository()
     private val _uiState = MutableStateFlow(PlantsUiState())
@@ -62,9 +65,11 @@ class PlantsViewModel : ViewModel() {
     }
 }
 
+// --- MAIN SCREEN ---
 @Composable
 fun PlantsHomeScreen(
-    viewModel: PlantsViewModel = viewModel()
+    viewModel: PlantsViewModel = viewModel(),
+    onPlantClick: (String) -> Unit // 👈 callback for navigation
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -131,7 +136,8 @@ fun PlantsHomeScreen(
                     items(uiState.plants) { plant ->
                         PlantCard(
                             plant = plant,
-                            onDelete = { viewModel.deletePlant(it) }
+                            onDelete = { viewModel.deletePlant(it) },
+                            onClick = { onPlantClick(plant.plantId) } // 👈 navigate to details
                         )
                     }
                 }
@@ -140,15 +146,20 @@ fun PlantsHomeScreen(
     }
 }
 
+// --- CARD ---
 @Composable
 fun PlantCard(
     plant: PlantProfile,
-    onDelete: (PlantProfile) -> Unit
+    onDelete: (PlantProfile) -> Unit,
+    onClick: () -> Unit // 👈 new parameter for navigation
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() } // 👈 go to detail screen when tapped
+            .padding(0.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -161,14 +172,12 @@ fun PlantCard(
                 Image(
                     painter = rememberAsyncImagePainter(plant.photoUrl),
                     contentDescription = plant.commonName,
-                    modifier = Modifier
-                        .size(80.dp),
+                    modifier = Modifier.size(80.dp),
                     contentScale = ContentScale.Crop
                 )
             } else {
                 Box(
-                    modifier = Modifier
-                        .size(80.dp),
+                    modifier = Modifier.size(80.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text("🌿", style = MaterialTheme.typography.displayMedium)
@@ -177,9 +186,7 @@ fun PlantCard(
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = plant.commonName,
                     style = MaterialTheme.typography.titleMedium
