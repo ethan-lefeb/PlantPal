@@ -63,6 +63,7 @@ fun PlantPalApp() {
                 ) {
                     val backStackEntry by navController.currentBackStackEntryAsState()
                     val current = backStackEntry?.destination?.route
+
                     tabs.forEach { tab ->
                         NavigationBarItem(
                             selected = current == tab.route,
@@ -79,17 +80,19 @@ fun PlantPalApp() {
                                 Icon(
                                     tab.icon,
                                     contentDescription = tab.label,
-                                    tint = if (current == tab.route) Color(0xFF2F5233) else Color(
-                                        0xFF52796F
-                                    )
+                                    tint = if (current == tab.route)
+                                        Color(0xFF2F5233)
+                                    else
+                                        Color(0xFF52796F)
                                 )
                             },
                             label = {
                                 Text(
                                     tab.label,
-                                    color = if (current == tab.route) Color(0xFF2F5233) else Color(
-                                        0xFF52796F
-                                    ),
+                                    color = if (current == tab.route)
+                                        Color(0xFF2F5233)
+                                    else
+                                        Color(0xFF52796F),
                                     fontSize = 13.sp
                                 )
                             }
@@ -100,6 +103,8 @@ fun PlantPalApp() {
             floatingActionButton = {
                 val backStackEntry by navController.currentBackStackEntryAsState()
                 val current = backStackEntry?.destination?.route
+
+                // Only show the + button on the Home screen
                 if (current == "home") {
                     FloatingActionButton(
                         onClick = { navController.navigate("addPlant") },
@@ -111,6 +116,7 @@ fun PlantPalApp() {
                 }
             }
         ) { innerPadding ->
+            // Ensure screens respect the inner padding so FAB and nav bar are visible
             NavHost(
                 navController = navController,
                 startDestination = "home",
@@ -119,10 +125,8 @@ fun PlantPalApp() {
                     .fillMaxSize()
             ) {
                 composable("home") {
-                    CenterText(
-                        "Your plants will appear here 🌱\n\nTap + to add your first plant!",
-                        title = "Home"
-                    )
+                    // Use your real HomeScreen here
+                    HomeScreen(navController)
                 }
                 composable("library") {
                     CenterText("Explore the Plant Library 📚", title = "Library")
