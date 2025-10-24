@@ -73,8 +73,11 @@ fun PlantPalApp(
             startDestination = "home",
             modifier = Modifier.padding(innerPadding)
         ) {
+            // Home Screen
             composable("home") {
                 val plantsViewModel: PlantsViewModel = viewModel()
+                LaunchedEffect(Unit) { plantsViewModel.loadPlants() }
+
                 PlantsHomeScreen(
                     viewModel = plantsViewModel,
                     onPlantClick = { plantId ->
@@ -83,22 +86,16 @@ fun PlantPalApp(
                 )
             }
 
-                LaunchedEffect(Unit) {
-                    plantsViewModel.loadPlants()
-                }
-
-                PlantsHomeScreen(
-                    viewModel = plantsViewModel,
-                    onPlantClick = { plantId ->
-                        navController.navigate("plantDetail/$plantId")
-                    }
-                )
-            }
-
+            // Library Screen
             composable("library") { CenterText("Plant Library (placeholder)") }
+
+            // Alerts Screen
             composable("alerts") { CenterText("Notifications (placeholder)") }
+
+            // Profile Screen
             composable("profile") { ProfileScreen(onSignOut = onSignOut) }
 
+            // Add Plant Screen
             composable(
                 route = "addPlant/{userId}",
                 arguments = listOf(navArgument("userId") { type = NavType.StringType })
@@ -107,18 +104,19 @@ fun PlantPalApp(
                 AddPlantCaptureScreen(
                     apiKey = PlantIdSecret.API_KEY,
                     currentUserId = userId,
-                    onSaved = { savedPlantId ->
-                        // Return to home after saving
-                        navController.popBackStack("home", inclusive = false)
-                    }
+                    onSaved = { navController.popBackStack("home", inclusive = false) }
                 )
             }
+
+            // Plant Detail Screen
             composable(
-                route = "plantDetail/{plantId}",
-                arguments = listOf(navArgument("plantId") { type = NavType.StringType })
+                route = "plantDetail/{userId}/{plantId}",
+                arguments = listOf(
+                    navArgument("userId") { type = NavType.StringType },
+                    navArgument("plantId") { type = NavType.StringType }
+                )
             ) { backStackEntry ->
                 val plantId = backStackEntry.arguments?.getString("plantId")
-
                 if (plantId != null) {
                     PlantDetailScreenWrapper(
                         plantId = plantId,
@@ -130,6 +128,10 @@ fun PlantPalApp(
     }
 }
 
+// --------------------------------------
+// Composables moved to file-level
+// --------------------------------------
+
 @Composable
 fun PlantDetailScreenWrapper(
     plantId: String,
@@ -138,22 +140,14 @@ fun PlantDetailScreenWrapper(
     val plantsViewModel: PlantsViewModel = viewModel()
     val uiState by plantsViewModel.uiState.collectAsState()
 
-    LaunchedEffect(plantId) {
-        plantsViewModel.loadPlants()
-    }
+    LaunchedEffect(plantId) { plantsViewModel.loadPlants() }
 
     val plant = uiState.plants.find { it.plantId == plantId }
 
     if (plant != null) {
-        PlantCareDetailScreen(
-            plant = plant,
-            onBack = onBack
-        )
+        PlantCareDetailScreen(plant = plant, onBack = onBack)
     } else {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             if (uiState.isLoading) {
                 CircularProgressIndicator()
             } else {
@@ -163,9 +157,7 @@ fun PlantDetailScreenWrapper(
                 ) {
                     Text("Plant not found", style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.height(16.dp))
-                    Button(onClick = onBack) {
-                        Text("Go Back")
-                    }
+                    Button(onClick = onBack) { Text("Go Back") }
                 }
             }
         }
@@ -186,15 +178,14 @@ fun ProfileScreen(onSignOut: () -> Unit) {
             style = MaterialTheme.typography.headlineMedium,
             modifier = Modifier.padding(bottom = 32.dp)
         )
-        Button(
-            onClick = onSignOut,
-            modifier = Modifier.fillMaxWidth()
-        ) { Text("Sign Out") }
+        Button(onClick = onSignOut, modifier = Modifier.fillMaxWidth()) {
+            Text("Sign Out")
+        }
     }
 }
 
 @Composable
-private fun CenterText(text: String) {
+fun CenterText(text: String) {
     Box(Modifier.fillMaxSize()) {
         Text(
             text = text,

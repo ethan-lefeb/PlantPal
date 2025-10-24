@@ -1,11 +1,13 @@
 package com.example.plantpal
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,9 +22,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.*
 
+// ---------- UI STATE ----------
 data class PlantDetailUiState(
     val plant: PlantProfile? = null,
     val isLoading: Boolean = true,
@@ -30,108 +31,105 @@ data class PlantDetailUiState(
     val actionInProgress: String? = null
 )
 
+// ---------- VIEWMODEL ----------
 class PlantDetailViewModel(private val plantId: String) : ViewModel() {
     private val repository = PlantRepository()
-    private val _uiState = MutableStateFlow(PlantDetailUiState())
+
+    private val _uiState: MutableStateFlow<PlantDetailUiState> =
+        MutableStateFlow(PlantDetailUiState())
     val uiState: StateFlow<PlantDetailUiState> = _uiState.asStateFlow()
 
-    init {
-        loadPlant()
-    }
+    init { loadPlant() }
 
     fun loadPlant() {
         viewModelScope.launch {
             _uiState.value = PlantDetailUiState(isLoading = true)
-            val result = repository.getPlant(plantId)
-
-            result.onSuccess { plant ->
-                _uiState.value = PlantDetailUiState(plant = plant, isLoading = false)
-            }.onFailure { error ->
-                _uiState.value = PlantDetailUiState(error = error.message, isLoading = false)
-            }
+            val result: Result<PlantProfile> = repository.getPlant(plantId)
+            result
+                .onSuccess { plant: PlantProfile ->
+                    _uiState.value = PlantDetailUiState(plant = plant, isLoading = false)
+                }
+                .onFailure { error: Throwable ->
+                    _uiState.value = PlantDetailUiState(error = error.message, isLoading = false)
+                }
         }
     }
 
     fun waterPlant() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(actionInProgress = "watering")
-            val result = repository.waterPlant(plantId)
-
-            result.onSuccess {
-                loadPlant()
-            }.onFailure { error ->
-                _uiState.value = _uiState.value.copy(
-                    error = error.message,
-                    actionInProgress = null
-                )
-            }
+            val result: Result<Unit> = repository.waterPlant(plantId)
+            result
+                .onSuccess { loadPlant() }
+                .onFailure { e: Throwable ->
+                    _uiState.value = _uiState.value.copy(
+                        error = e.message, actionInProgress = null
+                    )
+                }
         }
     }
 
     fun fertilizePlant() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(actionInProgress = "fertilizing")
-            val result = repository.fertilizePlant(plantId)
-
-            result.onSuccess {
-                loadPlant()
-            }.onFailure { error ->
-                _uiState.value = _uiState.value.copy(
-                    error = error.message,
-                    actionInProgress = null
-                )
-            }
+            val result: Result<Unit> = repository.fertilizePlant(plantId)
+            result
+                .onSuccess { loadPlant() }
+                .onFailure { e: Throwable ->
+                    _uiState.value = _uiState.value.copy(
+                        error = e.message, actionInProgress = null
+                    )
+                }
         }
     }
 
     fun updateHealthStatus(health: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(actionInProgress = "updating")
-            val result = repository.updateHealthStatus(plantId, health)
-
-            result.onSuccess {
-                loadPlant()
-            }.onFailure { error ->
-                _uiState.value = _uiState.value.copy(
-                    error = error.message,
-                    actionInProgress = null
-                )
-            }
+            val result: Result<Unit> = repository.updateHealthStatus(plantId, health)
+            result
+                .onSuccess { loadPlant() }
+                .onFailure { e: Throwable ->
+                    _uiState.value = _uiState.value.copy(
+                        error = e.message, actionInProgress = null
+                    )
+                }
         }
     }
 
-    fun updatePlant(updatedPlant: PlantProfile) {
+    fun updatePlant(updated: PlantProfile) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(actionInProgress = "saving")
-            val result = repository.updatePlant(updatedPlant)
-
-            result.onSuccess {
-                loadPlant()
-            }.onFailure { error ->
-                _uiState.value = _uiState.value.copy(
-                    error = error.message,
-                    actionInProgress = null
-                )
-            }
+            val result: Result<Unit> = repository.updatePlant(updated)
+            result
+                .onSuccess { loadPlant() }
+                .onFailure { e: Throwable ->
+                    _uiState.value = _uiState.value.copy(
+                        error = e.message, actionInProgress = null
+                    )
+                }
         }
     }
 }
 
+// ---------- SCREEN ----------
 @OptIn(ExperimentalMaterial3Api::class)
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun PlantDetailScreen(
     plantId: String,
     onNavigateBack: () -> Unit,
     viewModel: PlantDetailViewModel = viewModel(
+        modelClass = PlantDetailViewModel::class.java,
         factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                @Suppress("UNCHECKED_CAST")
                 return PlantDetailViewModel(plantId) as T
             }
         }
     )
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState: PlantDetailUiState by viewModel.uiState.collectAsState()
     var showEditDialog by remember { mutableStateOf(false) }
     var showHealthDialog by remember { mutableStateOf(false) }
 
@@ -141,12 +139,15 @@ fun PlantDetailScreen(
                 title = { Text(uiState.plant?.commonName ?: "Plant Details") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showEditDialog = true }) {
-                        Icon(Icons.Default.Edit, contentDescription = "Edit")
+                    IconButton(
+                        onClick = { showEditDialog = true },
+                        enabled = uiState.plant != null
+                    ) {
+                        Icon(Icons.Filled.Edit, contentDescription = "Edit")
                     }
                 }
             )
@@ -159,9 +160,7 @@ fun PlantDetailScreen(
                         .fillMaxSize()
                         .padding(padding),
                     contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
+                ) { CircularProgressIndicator() }
             }
 
             uiState.error != null -> {
@@ -176,16 +175,14 @@ fun PlantDetailScreen(
                         modifier = Modifier.padding(16.dp)
                     ) {
                         Text(
-                            text = "Error loading plant",
+                            "Error loading plant",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.error
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(text = uiState.error ?: "Unknown error")
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { viewModel.loadPlant() }) {
-                            Text("Retry")
-                        }
+                        Spacer(Modifier.height(8.dp))
+                        Text(uiState.error ?: "Unknown error")
+                        Spacer(Modifier.height(16.dp))
+                        Button(onClick = { viewModel.loadPlant() }) { Text("Retry") }
                     }
                 }
             }
@@ -207,8 +204,8 @@ fun PlantDetailScreen(
         EditPlantDialog(
             plant = uiState.plant!!,
             onDismiss = { showEditDialog = false },
-            onSave = { updatedPlant ->
-                viewModel.updatePlant(updatedPlant)
+            onSave = { updated: PlantProfile ->
+                viewModel.updatePlant(updated)
                 showEditDialog = false
             }
         )
@@ -218,7 +215,7 @@ fun PlantDetailScreen(
         HealthStatusDialog(
             currentHealth = uiState.plant?.health ?: "healthy",
             onDismiss = { showHealthDialog = false },
-            onSelect = { health ->
+            onSelect = { health: String ->
                 viewModel.updateHealthStatus(health)
                 showHealthDialog = false
             }
@@ -226,6 +223,7 @@ fun PlantDetailScreen(
     }
 }
 
+// ---------- SUPPORTING COMPOSABLES ----------
 @Composable
 fun PlantDetailContent(
     plant: PlantProfile,
@@ -263,48 +261,36 @@ fun PlantDetailContent(
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
-                ) {
-                    Text("🌿", style = MaterialTheme.typography.displayLarge)
-                }
+                ) { Text("🌿", style = MaterialTheme.typography.displayLarge) }
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
-
+        Spacer(Modifier.height(24.dp))
+        Text(plant.commonName, style = MaterialTheme.typography.headlineMedium)
         Text(
-            text = plant.commonName,
-            style = MaterialTheme.typography.headlineMedium
-        )
-        Text(
-            text = plant.scientificName,
+            plant.scientificName,
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         if (plant.confidence > 0.0) {
             Text(
-                text = "Confidence: ${(plant.confidence * 100).toInt()}%",
+                "Confidence: ${(plant.confidence * 100).toInt()}%",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-        HorizontalDivider()
-        Spacer(modifier = Modifier.height(16.dp))
-
+        Spacer(Modifier.height(16.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
+                Text("Health Status", style = MaterialTheme.typography.titleMedium)
                 Text(
-                    text = "Health Status",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = plant.health.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() },
+                    plant.health.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() },
                     style = MaterialTheme.typography.bodyLarge,
                     color = when (plant.health) {
                         "healthy" -> MaterialTheme.colorScheme.primary
@@ -313,18 +299,12 @@ fun PlantDetailContent(
                     }
                 )
             }
-            TextButton(onClick = onUpdateHealth) {
-                Text("Update")
-            }
+            TextButton(onClick = onUpdateHealth) { Text("Update") }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "Care Actions",
-            style = MaterialTheme.typography.titleMedium
-        )
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(Modifier.height(16.dp))
+        Text("Care Actions", style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(12.dp))
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -343,7 +323,7 @@ fun PlantDetailContent(
                 } else {
                     Text("💧")
                 }
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(Modifier.width(8.dp))
                 Text("Water")
             }
 
@@ -360,82 +340,10 @@ fun PlantDetailContent(
                 } else {
                     Text("🌱")
                 }
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(Modifier.width(8.dp))
                 Text("Fertilize")
             }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "Care History",
-            style = MaterialTheme.typography.titleMedium
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Card(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                CareHistoryItem(
-                    label = "Last Watered",
-                    timestamp = plant.lastWatered
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                CareHistoryItem(
-                    label = "Last Fertilized",
-                    timestamp = plant.lastFertilized
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        if (plant.notes.isNotBlank()) {
-            Text(
-                text = "Notes",
-                style = MaterialTheme.typography.titleMedium
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = plant.notes,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(16.dp)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "Added ${formatDate(plant.createdAt)}",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-fun CareHistoryItem(
-    label: String,
-    timestamp: Long
-) {
-    Column {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Text(
-            text = if (timestamp > 0) formatDate(timestamp) else "Never",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
 
@@ -456,23 +364,23 @@ fun EditPlantDialog(
             Column {
                 OutlinedTextField(
                     value = commonName,
-                    onValueChange = { commonName = it },
+                    onValueChange = { value: String -> commonName = value },
                     label = { Text("Common Name") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
                     value = scientificName,
-                    onValueChange = { scientificName = it },
+                    onValueChange = { value: String -> scientificName = value },
                     label = { Text("Scientific Name") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
                     value = notes,
-                    onValueChange = { notes = it },
+                    onValueChange = { value: String -> notes = value },
                     label = { Text("Notes") },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3,
@@ -492,14 +400,10 @@ fun EditPlantDialog(
                     )
                 },
                 enabled = commonName.isNotBlank()
-            ) {
-                Text("Save")
-            }
+            ) { Text("Save") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
+            TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
 }
@@ -510,14 +414,14 @@ fun HealthStatusDialog(
     onDismiss: () -> Unit,
     onSelect: (String) -> Unit
 ) {
-    val healthOptions = listOf("healthy", "warning", "critical")
+    val healthOptions: List<String> = listOf("healthy", "warning", "critical")
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Update Health Status") },
         text = {
             Column {
-                healthOptions.forEach { health ->
+                healthOptions.forEach { health: String ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -528,25 +432,16 @@ fun HealthStatusDialog(
                             selected = currentHealth == health,
                             onClick = { onSelect(health) }
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(Modifier.width(8.dp))
                         Text(
-                            text = health.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() },
-                            style = MaterialTheme.typography.bodyLarge
+                            text = health.replaceFirstChar {
+                                if (it.isLowerCase()) it.titlecase() else it.toString()
+                            }
                         )
                     }
                 }
             }
         },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } }
     )
-}
-
-private fun formatDate(timestamp: Long): String {
-    if (timestamp == 0L) return "Never"
-    val sdf = SimpleDateFormat("MMM dd, yyyy 'at' hh:mm a", Locale.getDefault())
-    return sdf.format(Date(timestamp))
 }

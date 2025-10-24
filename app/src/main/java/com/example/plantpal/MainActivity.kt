@@ -8,25 +8,46 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.core.app.ActivityCompat
-import com.example.plantpal.ui.theme.PlantPalTheme
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.messaging.FirebaseMessaging
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.plantpal.ui.theme.PlantPalTheme
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.messaging.FirebaseMessaging
 
 class MainActivity : ComponentActivity() {
+
+    // registers permission launcher
+    private val requestPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            if (!isGranted) {
+                println("Notification permission not granted.")
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // requests permissions to post notifications
+        // requests permissions to post notifications (Android 13+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val permissionCheck = ActivityCompat.checkSelfPermission(
                 this, Manifest.permission.POST_NOTIFICATIONS
@@ -36,7 +57,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // retrieves  and stores FCM token
+        // retrieves and stores FCM token
         FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
             val userId = AuthRepository.currentUserId()
             if (userId != null) {
@@ -61,14 +82,6 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
-    // registers permission launcher
-    private val requestPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
-            if (!isGranted) {
-                println("Notification permission not granted.")
-            }
-        }
 
     // stores fcm token in firestore for targeted notifications
     private fun saveFcmTokenToFirestore(userId: String, token: String) {
@@ -124,17 +137,47 @@ fun AppNavigation(modifier: Modifier = Modifier, startDestination: String = "sta
             )
         }
 
-        // --- PLANT DETAIL SCREEN ---
+        // --- PLANT DETAIL (now uses PlantCareDetailScreen) ---
         composable(
             route = "plantDetail/{plantId}",
             arguments = listOf(navArgument("plantId") { type = NavType.StringType })
         ) { backStackEntry ->
             val plantId = backStackEntry.arguments?.getString("plantId") ?: return@composable
-            PlantDetailScreen(
-                plantId = plantId,
-                userId = currentUserId,
-                onBack = { navController.popBackStack() }
-            )
+            val repo = remember { PlantRepository() }
+
+            var plant by remember { mutableStateOf<PlantProfile?>(null) }
+            var isLoading by remember { mutableStateOf(true) }
+            var error by remember { mutableStateOf<String?>(null) }
+
+            LaunchedEffect(plantId) {
+                isLoading = true
+                val res = repo.getPlant(plantId) // Result<PlantProfile>
+                if (res.isSuccess) {
+                    plant = res.getOrNull()
+                    error = null
+                } else {
+                    error = res.exceptionOrNull()?.message ?: "Unknown error"
+                }
+                isLoading = false
+            }
+
+            when {
+                isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+
+                error != null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Error: $error", color = MaterialTheme.colorScheme.error)
+                }
+
+                plant != null -> {
+                    val currentPlant = plant!! // avoid delegated smart-cast issues
+                    PlantCareDetailScreen(
+                        plant = currentPlant,
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+            }
         }
     }
 }

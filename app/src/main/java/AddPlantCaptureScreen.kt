@@ -175,7 +175,7 @@ fun AddPlantCaptureScreen(
                 }
 
                 Spacer(Modifier.height(16.dp))
-                Divider()
+                HorizontalDivider()
                 Spacer(Modifier.height(16.dp))
 
                 OutlinedTextField(
