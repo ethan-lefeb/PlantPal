@@ -5,7 +5,6 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.example.plantpal.AddPlantCaptureScreen
 
 @Composable
 fun AppNavGraph(
@@ -25,8 +24,8 @@ fun AppNavGraph(
         composable("signup") {
             AccountCreationScreen(
                 onSuccess = {
-                    navController.navigate("home") {
-                        popUpTo("signup") { inclusive = true }
+                    navController.navigate("main") {
+                        popUpTo(0) { inclusive = true } // Clear back stack
                     }
                 },
                 onNavigateToLogin = { navController.navigate("login") }
@@ -36,34 +35,17 @@ fun AppNavGraph(
         composable("login") {
             LoginScreen(
                 onSuccess = {
-                    navController.navigate("home") {
-                        popUpTo("login") { inclusive = true }
+                    navController.navigate("main") {
+                        popUpTo(0) { inclusive = true }
                     }
                 },
                 onNavigateToSignup = { navController.navigate("signup") }
             )
         }
 
-        // 🌿 Main App Screens (with Bottom Nav)
-        composable("home") {
-            HomeScreen(navController = navController)
+        // 🌿 Main App with Bottom Navigation Bar
+        composable("main") {
+            PlantPalApp() // This contains its own NavHost and bottom nav
         }
-
-        composable(route = "addPlant") {
-            AddPlantCaptureScreen(
-                onSaved = { uri ->
-                    // Navigate back to home after saving
-                    navController.navigate("home") {
-                        popUpTo("addPlant") { inclusive = true }
-                    }
-                }
-            )
-        }
-
-
-        composable("profile") {
-            PlantProfile(navController = navController)
-        }
-
     }
 }
