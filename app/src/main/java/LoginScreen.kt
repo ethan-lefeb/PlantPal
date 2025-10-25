@@ -6,7 +6,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -16,20 +17,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 
-@Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun LoginScreen(
+    viewModel: AuthViewModel = viewModel(),
     onSuccess: () -> Unit = {},
     onNavigateToSignup: () -> Unit = {}
 ) {
-    // Fake state for preview
-    val fakeUiState = AuthUiState(
-        username = "Plant Lover",
-        isLoading = false,
-        error = null,
-        success = false
-    )
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+
+    val uiState by viewModel.uiState.collectAsState()
 
     Box(
         modifier = Modifier
@@ -51,7 +50,7 @@ fun LoginScreen(
                 .align(Alignment.Center),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
+            // Icon
             Icon(
                 imageVector = Icons.Default.Eco,
                 contentDescription = null,
@@ -61,8 +60,9 @@ fun LoginScreen(
                     .padding(bottom = 8.dp)
             )
 
+            // Header Text
             Text(
-                text = "Welcome, ${fakeUiState.username}!",
+                text = "Welcome Back",
                 style = MaterialTheme.typography.headlineSmall.copy(
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF2F5233)
@@ -71,40 +71,51 @@ fun LoginScreen(
                 modifier = Modifier.padding(bottom = 32.dp)
             )
 
+            // Email Field
             OutlinedTextField(
-                value = "test@email.com",
-                onValueChange = {},
+                value = email,
+                onValueChange = { email = it },
                 label = { Text("Email") },
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
+            // Password Field
             OutlinedTextField(
-                value = "password",
-                onValueChange = {},
+                value = password,
+                onValueChange = { password = it },
                 label = { Text("Password") },
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
+            // Login Button
             Button(
-                onClick = { onSuccess() },
+                onClick = { viewModel.login(email.trim(), password.trim()) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
+                enabled = !uiState.isLoading,
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F61)),
                 shape = RoundedCornerShape(50)
             ) {
-                Text("Log in", color = Color.White, fontWeight = FontWeight.SemiBold)
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                } else {
+                    Text("Log in", color = Color.White, fontWeight = FontWeight.SemiBold)
+                }
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            TextButton(onClick = { onNavigateToSignup() }) {
+            TextButton(onClick = onNavigateToSignup) {
                 Text(
                     "Need an account? Sign up",
                     color = Color(0xFF2F5233),
@@ -112,14 +123,45 @@ fun LoginScreen(
                 )
             }
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Error feedback
+            if (uiState.error != null) {
+                Text(
+                    text = "Error: ${uiState.error}",
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+
+            // Success feedback
+            if (uiState.success) {
+                LaunchedEffect(uiState.success) {
+                    onSuccess()
+                    viewModel.resetState()
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
             Text(
-                text = "Grow your green journey with PlantPal 🌿",
+                text = "Grow your green journey with PlantPal",
                 style = MaterialTheme.typography.bodySmall.copy(
                     color = Color(0xFF52796F),
                     textAlign = TextAlign.Center
-                )
+                ),
+                textAlign = TextAlign.Center
             )
         }
     }
 }
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun LoginScreenPreview() {
+    Box(modifier = Modifier.fillMaxSize()) {
+        LoginScreen(onNavigateToSignup = {}, onSuccess = {})
+    }
+}
+
