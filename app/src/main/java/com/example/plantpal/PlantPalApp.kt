@@ -125,7 +125,7 @@ fun PlantPalApp() {
                     .fillMaxSize()
             ) {
                 composable("home") {
-                    // Use your real HomeScreen here
+                    // Routes to real Home Screen
                     HomeScreen(navController)
                 }
                 composable("library") {
