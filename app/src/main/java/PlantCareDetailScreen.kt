@@ -27,8 +27,22 @@ fun PlantCareDetailScreen(
     var isWatering by remember { mutableStateOf(false) }
     var isFertilizing by remember { mutableStateOf(false) }
     var showEdit by remember { mutableStateOf(false) }
+    var showAvatarCustomization by remember { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+
+    LaunchedEffect(currentPlant.health, currentPlant.lastWatered) {
+        val updatedConfig = AvatarGenerator.updateAvatarForPlantState(
+            currentConfig = currentPlant.avatarConfig,
+            health = currentPlant.health,
+            lastWatered = currentPlant.lastWatered,
+            wateringFrequency = currentPlant.wateringFrequency
+        )
+        if (updatedConfig != currentPlant.avatarConfig) {
+            currentPlant = currentPlant.copy(avatarConfig = updatedConfig)
+            plantRepository.updatePlant(currentPlant)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -52,25 +66,37 @@ fun PlantCareDetailScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // --- Plant Image ---
-            if (currentPlant.photoUrl.isNotEmpty()) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            Card(
+                modifier = Modifier
+                    .size(200.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Image(
-                        painter = rememberAsyncImagePainter(currentPlant.photoUrl),
-                        contentDescription = currentPlant.commonName,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                    PlantAvatar(
+                        avatarConfig = currentPlant.avatarConfig,
+                        health = currentPlant.health,
+                        size = 180.dp,
+                        animated = true
                     )
                 }
-                Spacer(Modifier.height(16.dp))
             }
+            
+            Spacer(Modifier.height(16.dp))
+
+            OutlinedButton(
+                onClick = { showAvatarCustomization = true },
+                modifier = Modifier.fillMaxWidth(0.6f)
+            ) {
+                Text("🎨 Customize Avatar")
+            }
+            
+            Spacer(Modifier.height(24.dp))
 
             // --- Plant Basic Info ---
             Text(
@@ -82,16 +108,110 @@ fun PlantCareDetailScreen(
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(Modifier.height(12.dp))
+            
+            Spacer(Modifier.height(16.dp))
 
-            Text("Health: ${currentPlant.health}")
-            Text("Sunlight: ${currentPlant.sunlight}")
-            Text("Water every ${currentPlant.wateringFrequency} days")
-            Text("Fertilize every ${currentPlant.fertilizerFrequency} days")
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = when (currentPlant.health) {
+                        "healthy" -> MaterialTheme.colorScheme.primaryContainer
+                        "warning" -> MaterialTheme.colorScheme.tertiaryContainer
+                        else -> MaterialTheme.colorScheme.errorContainer
+                    }
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Health Status",
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    val healthEmoji = when (currentPlant.health) {
+                        "healthy" -> "😊"
+                        "warning" -> "😐"
+                        "critical" -> "😢"
+                        else -> "🌱"
+                    }
+                    Text(
+                        text = "$healthEmoji ${currentPlant.health.replaceFirstChar { it.uppercase() }}",
+                        style = MaterialTheme.typography.headlineMedium
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // --- Care Information ---
+            Card(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Text(
+                        text = "Care Information",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("☀️ Sunlight:")
+                        Text(currentPlant.sunlight)
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("💧 Watering:")
+                        Text("Every ${currentPlant.wateringFrequency} days")
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("🌿 Fertilizer:")
+                        Text("Every ${currentPlant.fertilizerFrequency} days")
+                    }
+                    
+                    if (currentPlant.careInfo.careLevel.isNotEmpty()) {
+                        Spacer(Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("📊 Care Level:")
+                            Text(currentPlant.careInfo.careLevel.replaceFirstChar { it.uppercase() })
+                        }
+                    }
+                }
+            }
 
             if (currentPlant.notes.isNotEmpty()) {
-                Spacer(Modifier.height(8.dp))
-                Text("Notes: ${currentPlant.notes}")
+                Spacer(Modifier.height(16.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Notes",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(currentPlant.notes)
+                    }
+                }
             }
 
             Spacer(Modifier.height(24.dp))
@@ -152,6 +272,29 @@ fun PlantCareDetailScreen(
                 }
             }
 
+            Spacer(Modifier.height(16.dp))
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                if (currentPlant.lastWatered > 0) {
+                    val daysSinceWatered = (System.currentTimeMillis() - currentPlant.lastWatered) / (1000 * 60 * 60 * 24)
+                    Text(
+                        text = "Last watered: $daysSinceWatered days ago",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (currentPlant.lastFertilized > 0) {
+                    val daysSinceFertilized = (System.currentTimeMillis() - currentPlant.lastFertilized) / (1000 * 60 * 60 * 24)
+                    Text(
+                        text = "Last fertilized: $daysSinceFertilized days ago",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
             Spacer(Modifier.height(32.dp))
         }
     }
@@ -175,6 +318,27 @@ fun PlantCareDetailScreen(
                     }
                 }
             }
+        )
+    }
+    
+    // --- Avatar Customization Dialog ---
+    if (showAvatarCustomization) {
+        AvatarCustomizationScreen(
+            currentConfig = currentPlant.avatarConfig,
+            plantName = currentPlant.commonName,
+            onSave = { newConfig ->
+                scope.launch {
+                    saving = true
+                    val updated = currentPlant.copy(avatarConfig = newConfig)
+                    val result = plantRepository.updatePlant(updated)
+                    saving = false
+                    if (result.isSuccess) {
+                        currentPlant = updated
+                        showAvatarCustomization = false
+                    }
+                }
+            },
+            onBack = { showAvatarCustomization = false }
         )
     }
 }

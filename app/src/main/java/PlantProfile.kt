@@ -11,7 +11,6 @@ data class PlantProfile(
     val avatarConfig: AvatarConfig = AvatarConfig(),
     val baseType: String = "",
     val color: String = "",
-    val accessories: List<String> = emptyList(),
     val careProfile: CareProfile = CareProfile(),
     val wateringFrequency: Int = 7,
     val sunlight: String = "",
@@ -52,7 +51,6 @@ data class PlantCareInfo(
 data class AvatarConfig(
     val baseType: String = "",
     val color: String = "",
-    val accessories: List<String> = emptyList()
 )
 
 data class CareProfile(

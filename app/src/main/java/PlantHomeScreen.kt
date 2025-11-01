@@ -167,21 +167,14 @@ fun PlantCard(
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (plant.photoUrl.isNotEmpty()) {
-                Image(
-                    painter = rememberAsyncImagePainter(plant.photoUrl),
-                    contentDescription = plant.commonName,
-                    modifier = Modifier.size(80.dp),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                Box(
-                    modifier = Modifier.size(80.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("🌿", style = MaterialTheme.typography.displayMedium)
-                }
-            }
+
+            PlantAvatar(
+                avatarConfig = plant.avatarConfig,
+                health = plant.health,
+                modifier = Modifier,
+                size = 80.dp,
+                animated = false
+            )
 
             Spacer(modifier = Modifier.width(12.dp))
 
@@ -195,13 +188,22 @@ fun PlantCard(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                if (plant.confidence > 0.0) {
-                    Text(
-                        text = "Confidence: ${(plant.confidence * 100).toInt()}%",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+
+                val healthEmoji = when (plant.health) {
+                    "healthy" -> "😊"
+                    "warning" -> "😐"
+                    "critical" -> "😢"
+                    else -> "🌱"
                 }
+                Text(
+                    text = "$healthEmoji ${plant.health.replaceFirstChar { it.uppercase() }}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = when (plant.health) {
+                        "healthy" -> MaterialTheme.colorScheme.primary
+                        "warning" -> MaterialTheme.colorScheme.tertiary
+                        else -> MaterialTheme.colorScheme.error
+                    }
+                )
 
                 if (plant.careInfo.wateringMaxDays != null) {
                     Text(
