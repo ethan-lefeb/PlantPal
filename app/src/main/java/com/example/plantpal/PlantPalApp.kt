@@ -61,7 +61,7 @@ fun PlantPalApp(
         floatingActionButton = {
             val backStackEntry by navController.currentBackStackEntryAsState()
             val current = backStackEntry?.destination?.route
-            if (current == "home") {
+            if (current == "library") { // was "home"
                 FloatingActionButton(onClick = { navController.navigate("addPlant/$currentUserId") }) {
                     Icon(Icons.Default.Add, contentDescription = "Add Plant")
                 }
@@ -73,11 +73,20 @@ fun PlantPalApp(
             startDestination = "home",
             modifier = Modifier.padding(innerPadding)
         ) {
-            // Home Screen
+            // HOME now shows the Dashboard
             composable("home") {
+                DashboardScreen(
+                    onOpenLibrary = { navController.navigate("library") },
+                    onAddPlant = { navController.navigate("addPlant/$currentUserId") },
+                    onOpenPlant = { plantId ->
+                        navController.navigate("plantDetail/$currentUserId/$plantId")
+                    }
+                )
+            }
+
+            composable("library") {
                 val plantsViewModel: PlantsViewModel = viewModel()
                 LaunchedEffect(Unit) { plantsViewModel.loadPlants() }
-
                 PlantsHomeScreen(
                     viewModel = plantsViewModel,
                     onPlantClick = { plantId ->
@@ -86,16 +95,10 @@ fun PlantPalApp(
                 )
             }
 
-            // Library Screen
-            composable("library") { CenterText("Plant Library (placeholder)") }
-
-            // Alerts Screen
             composable("alerts") { CenterText("Notifications (placeholder)") }
-
-            // Profile Screen
             composable("profile") { ProfileScreen(onSignOut = onSignOut) }
 
-            // Add Plant Screen
+
             composable(
                 route = "addPlant/{userId}",
                 arguments = listOf(navArgument("userId") { type = NavType.StringType })
@@ -104,11 +107,15 @@ fun PlantPalApp(
                 AddPlantCaptureScreen(
                     apiKey = PlantIdSecret.API_KEY,
                     currentUserId = userId,
-                    onSaved = { navController.popBackStack("home", inclusive = false) }
+                    onSaved = {
+                        navController.popBackStack(
+                            "library",
+                            inclusive = false
+                        )
+                    }
                 )
             }
 
-            // Plant Detail Screen
             composable(
                 route = "plantDetail/{userId}/{plantId}",
                 arguments = listOf(
@@ -128,9 +135,6 @@ fun PlantPalApp(
     }
 }
 
-// --------------------------------------
-// Composables moved to file-level
-// --------------------------------------
 
 @Composable
 fun PlantDetailScreenWrapper(

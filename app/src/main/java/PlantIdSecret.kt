@@ -1,4 +1,3 @@
-// PlantIdSecret.kt
 package com.example.plantpal
 
 object PlantIdSecret {
