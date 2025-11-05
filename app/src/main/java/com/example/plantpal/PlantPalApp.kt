@@ -95,7 +95,13 @@ fun PlantPalApp(
                 )
             }
 
-            composable("alerts") { CenterText("Notifications (placeholder)") }
+            composable("alerts") {
+                AlertsScreen(
+                    onOpenPlant = { plantId ->
+                        navController.navigate("plantDetail/$currentUserId/$plantId")
+                    }
+                )
+            }
             composable("profile") { ProfileScreen(onSignOut = onSignOut) }
 
 
