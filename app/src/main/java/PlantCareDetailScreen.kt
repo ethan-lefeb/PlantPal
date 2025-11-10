@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
+import androidx.compose.ui.text.style.TextOverflow
 import coil.compose.rememberAsyncImagePainter
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -42,6 +43,7 @@ fun PlantCareDetailScreen(
     val scope = rememberCoroutineScope()
 
     var avatarCardSize by remember { mutableStateOf(androidx.compose.ui.geometry.Size.Zero) }
+    var showAvatarCustomization by remember { mutableStateOf(false) }
 
     val animationController = rememberAvatarAnimationController(
         health = currentPlant.health,
