@@ -12,8 +12,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toSize
 import coil.compose.rememberAsyncImagePainter
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -30,6 +33,15 @@ fun PlantCareDetailScreen(
     var showAvatarCustomization by remember { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+
+    var avatarCardSize by remember { mutableStateOf(androidx.compose.ui.geometry.Size.Zero) }
+
+    val animationController = rememberAvatarAnimationController(
+        health = currentPlant.health,
+        daysSinceWatering = ((System.currentTimeMillis() - currentPlant.lastWatered) / (1000 * 60 * 60 * 24)).toInt()
+    )
+
+    val particleSystem = rememberParticleSystem()
 
     LaunchedEffect(currentPlant.health, currentPlant.lastWatered) {
         val updatedConfig = AvatarGenerator.updateAvatarForPlantState(
@@ -71,7 +83,10 @@ fun PlantCareDetailScreen(
         ) {
             Card(
                 modifier = Modifier
-                    .size(200.dp),
+                    .size(200.dp)
+                    .onGloballyPositioned { coordinates ->
+                        avatarCardSize = coordinates.size.toSize()
+                    },
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
                 Box(
@@ -82,7 +97,13 @@ fun PlantCareDetailScreen(
                         avatarConfig = currentPlant.avatarConfig,
                         health = currentPlant.health,
                         size = 180.dp,
-                        animated = true
+                        animated = true,
+                        animationController = animationController
+                    )
+
+                    ParticleEffect(
+                        particleSystem = particleSystem,
+                        modifier = Modifier.fillMaxSize()
                     )
                 }
             }
@@ -93,12 +114,11 @@ fun PlantCareDetailScreen(
                 onClick = { showAvatarCustomization = true },
                 modifier = Modifier.fillMaxWidth(0.6f)
             ) {
-                Text("🎨 Customize Avatar")
+                Text("\uD83C\uDFA8 Customize Avatar")
             }
             
             Spacer(Modifier.height(24.dp))
 
-            // --- Plant Basic Info ---
             Text(
                 text = currentPlant.commonName,
                 style = MaterialTheme.typography.headlineSmall
@@ -130,10 +150,10 @@ fun PlantCareDetailScreen(
                         style = MaterialTheme.typography.titleSmall
                     )
                     val healthEmoji = when (currentPlant.health) {
-                        "healthy" -> "😊"
-                        "warning" -> "😐"
-                        "critical" -> "😢"
-                        else -> "🌱"
+                        "healthy" -> "\uD83D\uDE0A"  // 😊
+                        "warning" -> "\uD83D\uDE1F"  // 😟
+                        "critical" -> "\uD83D\uDE22" // 😢
+                        else -> "\uD83C\uDF31"       // 🌱
                     }
                     Text(
                         text = "$healthEmoji ${currentPlant.health.replaceFirstChar { it.uppercase() }}",
@@ -144,7 +164,6 @@ fun PlantCareDetailScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // --- Care Information ---
             Card(
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -161,7 +180,7 @@ fun PlantCareDetailScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("☀️ Sunlight:")
+                        Text("\u2600\uFE0F Sunlight:")
                         Text(currentPlant.sunlight)
                     }
                     Spacer(Modifier.height(4.dp))
@@ -170,7 +189,7 @@ fun PlantCareDetailScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("💧 Watering:")
+                        Text("\uD83D\uDCA7 Watering:")
                         Text("Every ${currentPlant.wateringFrequency} days")
                     }
                     Spacer(Modifier.height(4.dp))
@@ -179,7 +198,7 @@ fun PlantCareDetailScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("🌿 Fertilizer:")
+                        Text("\uD83C\uDF3F Fertilizer:")
                         Text("Every ${currentPlant.fertilizerFrequency} days")
                     }
                     
@@ -189,7 +208,7 @@ fun PlantCareDetailScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("📊 Care Level:")
+                            Text("\uD83D\uDCCA Care Level:")
                             Text(currentPlant.careInfo.careLevel.replaceFirstChar { it.uppercase() })
                         }
                     }
@@ -216,7 +235,6 @@ fun PlantCareDetailScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // --- Care Buttons ---
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -225,10 +243,16 @@ fun PlantCareDetailScreen(
                     onClick = {
                         scope.launch {
                             isWatering = true
+                            animationController.triggerAnimation(AnimationType.WATERING, duration = 2000)
+                            // Trigger water particle effect at center of card
+                            val centerX = avatarCardSize.width / 2
+                            val centerY = avatarCardSize.height / 2
+                            particleSystem.waterEffect(centerX, centerY)
                             val result = plantRepository.waterPlant(currentPlant.plantId)
                             if (result.isSuccess) {
                                 currentPlant = currentPlant.copy(lastWatered = System.currentTimeMillis())
                             }
+                            delay(2000)
                             isWatering = false
                         }
                     },
@@ -242,7 +266,7 @@ fun PlantCareDetailScreen(
                             strokeWidth = 2.dp
                         )
                     } else {
-                        Text("💧 Water")
+                        Text("\uD83D\uDCA7 Water")
                     }
                 }
 
@@ -250,10 +274,15 @@ fun PlantCareDetailScreen(
                     onClick = {
                         scope.launch {
                             isFertilizing = true
+                            animationController.triggerAnimation(AnimationType.FERTILIZING, duration = 2500)
+                            val centerX = avatarCardSize.width / 2
+                            val centerY = avatarCardSize.height / 2
+                            particleSystem.sunlightEffect(centerX, centerY)
                             val result = plantRepository.fertilizePlant(currentPlant.plantId)
                             if (result.isSuccess) {
                                 currentPlant = currentPlant.copy(lastFertilized = System.currentTimeMillis())
                             }
+                            delay(2500)
                             isFertilizing = false
                         }
                     },
@@ -267,7 +296,7 @@ fun PlantCareDetailScreen(
                             strokeWidth = 2.dp
                         )
                     } else {
-                        Text("🌿 Fertilize")
+                        Text("\uD83C\uDF3F Fertilize")
                     }
                 }
             }
@@ -299,7 +328,6 @@ fun PlantCareDetailScreen(
         }
     }
 
-    // --- Edit Dialog ---
     if (showEdit) {
         EditPlantDialog(
             plant = currentPlant,
@@ -320,8 +348,7 @@ fun PlantCareDetailScreen(
             }
         )
     }
-    
-    // --- Avatar Customization Dialog ---
+
     if (showAvatarCustomization) {
         AvatarCustomizationScreen(
             currentConfig = currentPlant.avatarConfig,

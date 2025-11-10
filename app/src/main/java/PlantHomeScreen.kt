@@ -120,7 +120,7 @@ fun PlantsHomeScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Your plants will appear here 🌱\n\nTap + to add your first plant!",
+                        text = "Your plants will appear here \uD83C\uDF31\n\nTap + to add your first plant!",
                         style = MaterialTheme.typography.bodyLarge,
                         textAlign = TextAlign.Center
                     )
@@ -190,10 +190,10 @@ fun PlantCard(
                 )
 
                 val healthEmoji = when (plant.health) {
-                    "healthy" -> "😊"
-                    "warning" -> "😐"
-                    "critical" -> "😢"
-                    else -> "🌱"
+                    "healthy" -> "\uD83D\uDE0A"  // 😊
+                    "warning" -> "\uD83D\uDE1F"  // 😟
+                    "critical" -> "\uD83D\uDE22" // 😢
+                    else -> "\uD83C\uDF31"       // 🌱
                 }
                 Text(
                     text = "$healthEmoji ${plant.health.replaceFirstChar { it.uppercase() }}",
@@ -207,7 +207,7 @@ fun PlantCard(
 
                 if (plant.careInfo.wateringMaxDays != null) {
                     Text(
-                        text = "💧 Water every ${plant.careInfo.wateringMinDays}-${plant.careInfo.wateringMaxDays} days",
+                        text = "\uD83D\uDCA7 Water every ${plant.careInfo.wateringMinDays}-${plant.careInfo.wateringMaxDays} days",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary
                     )
