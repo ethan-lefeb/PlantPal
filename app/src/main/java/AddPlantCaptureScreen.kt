@@ -336,6 +336,14 @@ private suspend fun handlePlantSaving(
         }
         val sunlightReq = PlantCareDefaults.getSunlightRequirement(careInfo.family, careInfo.genus)
         val fertilizerFreq = PlantCareDefaults.getFertilizerFrequency(careInfo.family)
+
+        val avatarConfig = AvatarGenerator.generateAvatarForPlant(
+            family = careInfo.family,
+            genus = careInfo.genus,
+            commonName = plantName,
+            scientificName = scientificName
+        )
+        
         val newPlant = PlantProfile(
             userId = userId,
             commonName = plantName,
@@ -344,6 +352,7 @@ private suspend fun handlePlantSaving(
             notes = notes,
             photoUrl = downloadUrl,
             careInfo = careInfo,
+            avatarConfig = avatarConfig,
             wateringFrequency = wateringFrequency,
             sunlight = sunlightReq,
             fertilizerFrequency = fertilizerFreq,

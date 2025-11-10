@@ -12,9 +12,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toSize
+import androidx.compose.ui.text.style.TextOverflow
 import coil.compose.rememberAsyncImagePainter
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -37,9 +39,31 @@ fun PlantCareDetailScreen(
 
     // ui state
     var showEdit by remember { mutableStateOf(false) }
-    var showCareDialog by remember { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+
+    var avatarCardSize by remember { mutableStateOf(androidx.compose.ui.geometry.Size.Zero) }
+    var showAvatarCustomization by remember { mutableStateOf(false) }
+
+    val animationController = rememberAvatarAnimationController(
+        health = currentPlant.health,
+        daysSinceWatering = ((System.currentTimeMillis() - currentPlant.lastWatered) / (1000 * 60 * 60 * 24)).toInt()
+    )
+
+    val particleSystem = rememberParticleSystem()
+
+    LaunchedEffect(currentPlant.health, currentPlant.lastWatered) {
+        val updatedConfig = AvatarGenerator.updateAvatarForPlantState(
+            currentConfig = currentPlant.avatarConfig,
+            health = currentPlant.health,
+            lastWatered = currentPlant.lastWatered,
+            wateringFrequency = currentPlant.wateringFrequency
+        )
+        if (updatedConfig != currentPlant.avatarConfig) {
+            currentPlant = currentPlant.copy(avatarConfig = updatedConfig)
+            plantRepository.updatePlant(currentPlant)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -65,6 +89,7 @@ fun PlantCareDetailScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
+            // --- Plant Image ---
             if (currentPlant.photoUrl.isNotEmpty()) {
                 Card(
                     modifier = Modifier
@@ -79,130 +104,104 @@ fun PlantCareDetailScreen(
                         contentScale = ContentScale.Crop
                     )
                 }
-                Spacer(Modifier.height(16.dp))
             }
 
-            Text(
-                text = currentPlant.commonName,
-                style = MaterialTheme.typography.headlineSmall
-            )
-            if (currentPlant.scientificName.isNotBlank()) {
-                Text(
-                    text = currentPlant.scientificName,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(16.dp))
 
-            CareSummary(currentPlant)
-
-            if (currentPlant.notes.isNotEmpty()) {
-                Spacer(Modifier.height(12.dp))
-                Text("Notes", style = MaterialTheme.typography.titleMedium)
-                Text(currentPlant.notes, style = MaterialTheme.typography.bodyMedium)
+            OutlinedButton(
+                onClick = { showAvatarCustomization = true },
+                modifier = Modifier.fillMaxWidth(0.6f)
+            ) {
+                Text("\uD83C\uDFA8 Customize Avatar")
             }
 
             Spacer(Modifier.height(24.dp))
 
-            Button(
-                onClick = { showCareDialog = true },
-                modifier = Modifier.fillMaxWidth()
+            // --- Plant Basic Info ---
+            Text(
+                text = currentPlant.commonName,
+                style = MaterialTheme.typography.headlineSmall
+            )
+            Text(
+                text = currentPlant.scientificName,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(12.dp))
+
+            Text("Health: ${currentPlant.health}")
+            Text("Sunlight: ${currentPlant.sunlight}")
+            Text("Water every ${currentPlant.wateringFrequency} days")
+            Text("Fertilize every ${currentPlant.fertilizerFrequency} days")
+
+            if (currentPlant.notes.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                Text("Notes: ${currentPlant.notes}")
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            // --- Care Buttons ---
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text("🛠️  Care for")
+                Button(
+                    onClick = {
+                        scope.launch {
+                            isWatering = true
+                            val result = plantRepository.waterPlant(currentPlant.plantId)
+                            if (result.isSuccess) {
+                                currentPlant = currentPlant.copy(lastWatered = System.currentTimeMillis())
+                            }
+                            isWatering = false
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                    enabled = !isWatering
+                ) {
+                    if (isWatering) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("💧 Water")
+                    }
+                }
+
+                Button(
+                    onClick = {
+                        scope.launch {
+                            isFertilizing = true
+                            val result = plantRepository.fertilizePlant(currentPlant.plantId)
+                            if (result.isSuccess) {
+                                currentPlant = currentPlant.copy(lastFertilized = System.currentTimeMillis())
+                            }
+                            isFertilizing = false
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                    enabled = !isFertilizing
+                ) {
+                    if (isFertilizing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("🌿 Fertilize")
+                    }
+                }
             }
 
             Spacer(Modifier.height(32.dp))
         }
     }
 
-    if (showCareDialog) {
-        AlertDialog(
-            onDismissRequest = {
-                if (!isWatering && !isFertilizing && !isRotating) showCareDialog = false
-            },
-            title = { Text("Log care action") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(
-                        onClick = {
-                            scope.launch {
-                                isWatering = true
-                                val result = plantRepository.waterPlant(currentPlant.plantId)
-                                if (result.isSuccess) {
-                                    currentPlant = currentPlant.copy(
-                                        lastWatered = System.currentTimeMillis()
-                                    )
-                                    showCareDialog = false
-                                }
-                                isWatering = false
-                            }
-                        },
-                        enabled = !isWatering && !isFertilizing && !isRotating,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        if (isWatering) SmallBusyDot()
-                        Spacer(Modifier.width(8.dp))
-                        Text("💧 Water")
-                    }
-
-                    Button(
-                        onClick = {
-                            scope.launch {
-                                isFertilizing = true
-                                val result = plantRepository.fertilizePlant(currentPlant.plantId)
-                                if (result.isSuccess) {
-                                    currentPlant = currentPlant.copy(
-                                        lastFertilized = System.currentTimeMillis()
-                                    )
-                                    showCareDialog = false
-                                }
-                                isFertilizing = false
-                            }
-                        },
-                        enabled = !isWatering && !isFertilizing && !isRotating,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        if (isFertilizing) SmallBusyDot()
-                        Spacer(Modifier.width(8.dp))
-                        Text("🌿 Fertilize")
-                    }
-
-                    OutlinedButton(
-                        onClick = {
-                            scope.launch {
-                                isRotating = true
-                                val updated = currentPlant.copy(
-                                    careProfile = currentPlant.careProfile.copy(
-                                        lastRotated = System.currentTimeMillis()
-                                    )
-                                )
-                                val res = plantRepository.updatePlant(updated)
-                                if (res.isSuccess) {
-                                    currentPlant = updated
-                                    showCareDialog = false
-                                }
-                                isRotating = false
-                            }
-                        },
-                        enabled = !isWatering && !isFertilizing && !isRotating,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        if (isRotating) SmallBusyDot(colorOn = false)
-                        Spacer(Modifier.width(8.dp))
-                        Text("🔄 Rotate")
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = { showCareDialog = false },
-                    enabled = !isWatering && !isFertilizing && !isRotating
-                ) { Text("Close") }
-            }
-        )
-    }
-
+    // --- Edit Dialog ---
     if (showEdit) {
         EditPlantDialog(
             plant = currentPlant,
@@ -221,6 +220,26 @@ fun PlantCareDetailScreen(
                     }
                 }
             }
+        )
+    }
+
+    if (showAvatarCustomization) {
+        AvatarCustomizationScreen(
+            currentConfig = currentPlant.avatarConfig,
+            plantName = currentPlant.commonName,
+            onSave = { newConfig ->
+                scope.launch {
+                    saving = true
+                    val updated = currentPlant.copy(avatarConfig = newConfig)
+                    val result = plantRepository.updatePlant(updated)
+                    saving = false
+                    if (result.isSuccess) {
+                        currentPlant = updated
+                        showAvatarCustomization = false
+                    }
+                }
+            },
+            onBack = { showAvatarCustomization = false }
         )
     }
 }
