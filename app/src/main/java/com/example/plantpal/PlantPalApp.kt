@@ -44,7 +44,7 @@ fun PlantPalApp(
                             selected = currentRoute == tab.route,
                             onClick = {
                                 navController.navigate(tab.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
+                                    popUpTo("home") {
                                         saveState = true
                                     }
                                     launchSingleTop = true
@@ -61,7 +61,7 @@ fun PlantPalApp(
         floatingActionButton = {
             val backStackEntry by navController.currentBackStackEntryAsState()
             val current = backStackEntry?.destination?.route
-            if (current == "library") { // was "home"
+            if (current == "library") {
                 FloatingActionButton(onClick = { navController.navigate("addPlant/$currentUserId") }) {
                     Icon(Icons.Default.Add, contentDescription = "Add Plant")
                 }
@@ -73,7 +73,6 @@ fun PlantPalApp(
             startDestination = "home",
             modifier = Modifier.padding(innerPadding)
         ) {
-            // HOME now shows the Dashboard
             composable("home") {
                 DashboardScreen(
                     onOpenLibrary = { navController.navigate("library") },

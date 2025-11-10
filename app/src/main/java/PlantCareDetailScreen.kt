@@ -12,9 +12,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlin.math.max
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,9 +29,15 @@ fun PlantCareDetailScreen(
 ) {
     val plantRepository = remember { PlantRepository() }
     var currentPlant by remember { mutableStateOf(plant) }
+
+    // loading flags for care actions
     var isWatering by remember { mutableStateOf(false) }
     var isFertilizing by remember { mutableStateOf(false) }
+    var isRotating by remember { mutableStateOf(false) }
+
+    // ui state
     var showEdit by remember { mutableStateOf(false) }
+    var showCareDialog by remember { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
@@ -54,7 +65,6 @@ fun PlantCareDetailScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            // --- Plant Image ---
             if (currentPlant.photoUrl.isNotEmpty()) {
                 Card(
                     modifier = Modifier
@@ -72,91 +82,127 @@ fun PlantCareDetailScreen(
                 Spacer(Modifier.height(16.dp))
             }
 
-            // --- Plant Basic Info ---
             Text(
                 text = currentPlant.commonName,
                 style = MaterialTheme.typography.headlineSmall
             )
-            Text(
-                text = currentPlant.scientificName,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            if (currentPlant.scientificName.isNotBlank()) {
+                Text(
+                    text = currentPlant.scientificName,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             Spacer(Modifier.height(12.dp))
 
-            Text("Health: ${currentPlant.health}")
-            Text("Sunlight: ${currentPlant.sunlight}")
-            Text("Water every ${currentPlant.wateringFrequency} days")
-            Text("Fertilize every ${currentPlant.fertilizerFrequency} days")
+            CareSummary(currentPlant)
 
             if (currentPlant.notes.isNotEmpty()) {
-                Spacer(Modifier.height(8.dp))
-                Text("Notes: ${currentPlant.notes}")
+                Spacer(Modifier.height(12.dp))
+                Text("Notes", style = MaterialTheme.typography.titleMedium)
+                Text(currentPlant.notes, style = MaterialTheme.typography.bodyMedium)
             }
 
             Spacer(Modifier.height(24.dp))
 
-            // --- Care Buttons ---
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            Button(
+                onClick = { showCareDialog = true },
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Button(
-                    onClick = {
-                        scope.launch {
-                            isWatering = true
-                            val result = plantRepository.waterPlant(currentPlant.plantId)
-                            if (result.isSuccess) {
-                                currentPlant = currentPlant.copy(lastWatered = System.currentTimeMillis())
-                            }
-                            isWatering = false
-                        }
-                    },
-                    modifier = Modifier.weight(1f),
-                    enabled = !isWatering
-                ) {
-                    if (isWatering) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Text("💧 Water")
-                    }
-                }
-
-                Button(
-                    onClick = {
-                        scope.launch {
-                            isFertilizing = true
-                            val result = plantRepository.fertilizePlant(currentPlant.plantId)
-                            if (result.isSuccess) {
-                                currentPlant = currentPlant.copy(lastFertilized = System.currentTimeMillis())
-                            }
-                            isFertilizing = false
-                        }
-                    },
-                    modifier = Modifier.weight(1f),
-                    enabled = !isFertilizing
-                ) {
-                    if (isFertilizing) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Text("🌿 Fertilize")
-                    }
-                }
+                Text("🛠️  Care for")
             }
 
             Spacer(Modifier.height(32.dp))
         }
     }
 
-    // --- Edit Dialog ---
+    if (showCareDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                if (!isWatering && !isFertilizing && !isRotating) showCareDialog = false
+            },
+            title = { Text("Log care action") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                isWatering = true
+                                val result = plantRepository.waterPlant(currentPlant.plantId)
+                                if (result.isSuccess) {
+                                    currentPlant = currentPlant.copy(
+                                        lastWatered = System.currentTimeMillis()
+                                    )
+                                    showCareDialog = false
+                                }
+                                isWatering = false
+                            }
+                        },
+                        enabled = !isWatering && !isFertilizing && !isRotating,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (isWatering) SmallBusyDot()
+                        Spacer(Modifier.width(8.dp))
+                        Text("💧 Water")
+                    }
+
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                isFertilizing = true
+                                val result = plantRepository.fertilizePlant(currentPlant.plantId)
+                                if (result.isSuccess) {
+                                    currentPlant = currentPlant.copy(
+                                        lastFertilized = System.currentTimeMillis()
+                                    )
+                                    showCareDialog = false
+                                }
+                                isFertilizing = false
+                            }
+                        },
+                        enabled = !isWatering && !isFertilizing && !isRotating,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (isFertilizing) SmallBusyDot()
+                        Spacer(Modifier.width(8.dp))
+                        Text("🌿 Fertilize")
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            scope.launch {
+                                isRotating = true
+                                val updated = currentPlant.copy(
+                                    careProfile = currentPlant.careProfile.copy(
+                                        lastRotated = System.currentTimeMillis()
+                                    )
+                                )
+                                val res = plantRepository.updatePlant(updated)
+                                if (res.isSuccess) {
+                                    currentPlant = updated
+                                    showCareDialog = false
+                                }
+                                isRotating = false
+                            }
+                        },
+                        enabled = !isWatering && !isFertilizing && !isRotating,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        if (isRotating) SmallBusyDot(colorOn = false)
+                        Spacer(Modifier.width(8.dp))
+                        Text("🔄 Rotate")
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { showCareDialog = false },
+                    enabled = !isWatering && !isFertilizing && !isRotating
+                ) { Text("Close") }
+            }
+        )
+    }
+
     if (showEdit) {
         EditPlantDialog(
             plant = currentPlant,
@@ -176,6 +222,73 @@ fun PlantCareDetailScreen(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun SmallBusyDot(colorOn: Boolean = true) {
+    CircularProgressIndicator(
+        modifier = Modifier.size(16.dp),
+        color = if (colorOn) MaterialTheme.colorScheme.onPrimary
+        else MaterialTheme.colorScheme.primary,
+        strokeWidth = 2.dp
+    )
+}
+
+@Composable
+private fun CareSummary(p: PlantProfile) {
+    // helpers
+    fun daysSince(ts: Long): Int {
+        if (ts <= 0L) return Int.MAX_VALUE
+        val days = (System.currentTimeMillis() - ts) / (1000L * 60 * 60 * 24)
+        return max(0, days.toInt())
+    }
+    fun tsLabel(ts: Long): String =
+        if (ts <= 0L) "—"
+        else SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date(ts))
+
+    val rotationEvery = p.careProfile.rotationFrequency
+    val lastRotatedTs = p.careProfile.lastRotated
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // frequencies
+        Text(
+            "Water every ${p.wateringFrequency} day${if (p.wateringFrequency == 1) "" else "s"}",
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Text(
+            "Fertilize every ${p.fertilizerFrequency} day${if (p.fertilizerFrequency == 1) "" else "s"}",
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Text(
+            "Rotate every $rotationEvery day${if (rotationEvery == 1) "" else "s"}",
+            style = MaterialTheme.typography.bodyMedium
+        )
+
+        // Last care timestamps
+        Spacer(Modifier.height(4.dp))
+        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(12.dp)) {
+                Text("Last care", style = MaterialTheme.typography.titleSmall)
+                Spacer(Modifier.height(6.dp))
+                CareRow("💧 Watered", tsLabel(p.lastWatered), daysSince(p.lastWatered))
+                CareRow("🌿 Fertilized", tsLabel(p.lastFertilized), daysSince(p.lastFertilized))
+                CareRow("🔄 Rotated", tsLabel(lastRotatedTs), daysSince(lastRotatedTs))
+            }
+        }
+    }
+}
+
+@Composable
+private fun CareRow(label: String, dateLabel: String, daysSince: Int) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        val right = if (dateLabel == "—") "—"
+        else "$dateLabel  ·  ${if (daysSince == 0) "today" else "$daysSince d ago"}"
+        Text(right, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

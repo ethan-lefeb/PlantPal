@@ -1,4 +1,3 @@
-// AlertsScreen.kt
 package com.example.plantpal
 
 import androidx.compose.foundation.layout.*
@@ -29,11 +28,12 @@ data class CareAlert(
     val type: CareType
 )
 
-enum class CareType { WATER, FERTILIZE }
+enum class CareType { WATER, FERTILIZE, ROTATE }
 
 data class AlertsUiState(
     val water: List<CareAlert> = emptyList(),
     val fertilize: List<CareAlert> = emptyList(),
+    val rotate: List<CareAlert> = emptyList(),
     val loading: Boolean = true,
     val error: String? = null
 )
@@ -50,6 +50,7 @@ class AlertsViewModel : ViewModel() {
             ui = ui.copy(loading = true, error = null)
             repo.getAllPlants()
                 .onSuccess { plants ->
+                    // Water due
                     val water = plants.filter { p ->
                         val interval = when {
                             p.wateringFrequency > 0 -> p.wateringFrequency
@@ -60,14 +61,23 @@ class AlertsViewModel : ViewModel() {
                         (interval - daysSince(p.lastWatered)) <= 0
                     }.map { CareAlert(it, CareType.WATER) }
 
+                    // Fertilizer due
                     val fert = plants.filter { p ->
                         val interval = if (p.fertilizerFrequency > 0) p.fertilizerFrequency else 30
                         (interval - daysSince(p.lastFertilized)) <= 0
                     }.map { CareAlert(it, CareType.FERTILIZE) }
 
+                    // Rotation due
+                    val rotate = plants.filter { p ->
+                        val interval = p.careProfile.rotationFrequency
+                        val last = p.careProfile.lastRotated
+                        (interval - daysSince(last)) <= 0
+                    }.map { CareAlert(it, CareType.ROTATE) }
+
                     ui = AlertsUiState(
                         water = water.sortedBy { it.plant.commonName.lowercase() },
                         fertilize = fert.sortedBy { it.plant.commonName.lowercase() },
+                        rotate = rotate.sortedBy { it.plant.commonName.lowercase() },
                         loading = false
                     )
                 }
@@ -82,6 +92,14 @@ class AlertsViewModel : ViewModel() {
             when (alert.type) {
                 CareType.WATER -> repo.waterPlant(alert.plant.plantId)
                 CareType.FERTILIZE -> repo.fertilizePlant(alert.plant.plantId)
+                CareType.ROTATE -> {
+                    val updated = alert.plant.copy(
+                        careProfile = alert.plant.careProfile.copy(
+                            lastRotated = System.currentTimeMillis()
+                        )
+                    )
+                    repo.updatePlant(updated)
+                }
             }.onSuccess { refresh() }
         }
     }
@@ -106,7 +124,7 @@ fun AlertsScreen(
             }
         }
         else -> {
-            val total = state.water.size + state.fertilize.size
+            val total = state.water.size + state.fertilize.size + state.rotate.size
             if (total == 0) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -152,6 +170,19 @@ fun AlertsScreen(
                                 title = alert.plant.commonName,
                                 subtitle = alert.plant.scientificName.ifBlank { "Needs fertilizer today" },
                                 actionLabel = "Mark fertilized",
+                                onAction = { vm.markCareDone(alert) },
+                                onOpen = { onOpenPlant(alert.plant.plantId) }
+                            )
+                        }
+                    }
+
+                    if (state.rotate.isNotEmpty()) {
+                        item { SectionHeader("Rotate") }
+                        items(state.rotate) { alert ->
+                            CareCard(
+                                title = alert.plant.commonName,
+                                subtitle = alert.plant.scientificName.ifBlank { "Needs rotation today" },
+                                actionLabel = "Mark rotated",
                                 onAction = { vm.markCareDone(alert) },
                                 onOpen = { onOpenPlant(alert.plant.plantId) }
                             )

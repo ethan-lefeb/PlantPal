@@ -58,13 +58,16 @@ data class AvatarConfig(
 data class CareProfile(
     val wateringFrequency: Int = 7,
     val sunlight: String = "",
-    val fertilizerFrequency: Int = 30
+    val fertilizerFrequency: Int = 30,
+    val lastRotated: Long = 0L,
+    val rotationFrequency: Int = 14
 )
 
 data class CurrentStatus(
     val health: String = "healthy",
     val lastWatered: Long = 0L,
-    val lastFertilized: Long = 0L
+    val lastFertilized: Long = 0L,
+    val lastRotated: Long = 0L
 )
 
 fun Suggestion.toCareInfo(): PlantCareInfo {

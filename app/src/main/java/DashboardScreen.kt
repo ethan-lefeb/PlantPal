@@ -14,8 +14,6 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import kotlin.math.max
 
-
-
 @Composable
 fun DashboardScreen(
     onOpenLibrary: () -> Unit,
@@ -46,10 +44,22 @@ fun DashboardScreen(
 
     val total = plants.size
     val dueWater = plants.count { daysSince(it.lastWatered) >= it.wateringFrequency }
-    val dueFert = plants.count { daysSince(it.lastFertilized) >= it.fertilizerFrequency }
+    val dueFert  = plants.count { daysSince(it.lastFertilized) >= it.fertilizerFrequency }
+    val dueRotate = plants.count { p ->
+        val last = p.careProfile.lastRotated
+        val every = p.careProfile.rotationFrequency
+        daysSince(last) >= every
+    }
 
     val upcomingWater = plants
         .sortedBy { (it.wateringFrequency - daysSince(it.lastWatered)).coerceAtLeast(0) }
+        .take(5)
+
+    val upcomingRotate = plants
+        .sortedBy {
+            (it.careProfile.rotationFrequency - daysSince(it.careProfile.lastRotated))
+                .coerceAtLeast(0)
+        }
         .take(5)
 
     when {
@@ -81,12 +91,20 @@ fun DashboardScreen(
                 item {
                     Text("Dashboard", style = MaterialTheme.typography.headlineMedium)
                     Spacer(Modifier.height(8.dp))
+                    // Stats row #1
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         StatCard("Total plants", total.toString(), modifier = Modifier.weight(1f))
                         StatCard("Water due",   dueWater.toString(), modifier = Modifier.weight(1f))
                         StatCard("Fertilize due", dueFert.toString(), modifier = Modifier.weight(1f))
                     }
-
+                    // Stats row #2 (rotation)
+                    Spacer(Modifier.height(12.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        StatCard("Rotate due", dueRotate.toString(), modifier = Modifier.weight(1f))
+                        // Optional: add more quick stats later; keep layout balanced
+                        Spacer(Modifier.weight(1f))
+                        Spacer(Modifier.weight(1f))
+                    }
                 }
 
                 if (total == 0) {
@@ -101,6 +119,7 @@ fun DashboardScreen(
                         }
                     }
                 } else {
+                    // Upcoming water
                     item {
                         SectionHeader(
                             title = "Upcoming water",
@@ -116,9 +135,28 @@ fun DashboardScreen(
                                 Text(plant.commonName, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             },
                             supportingContent = {
-                                Text(
-                                    if (dueIn == 0) "Water today" else "Water in $dueIn day${if (dueIn == 1) "" else "s"}"
-                                )
+                                Text(if (dueIn == 0) "Water today" else "Water in $dueIn day${if (dueIn == 1) "" else "s"}")
+                            },
+                            trailingContent = {
+                                IconButton(onClick = { onOpenPlant(plant.plantId) }) {
+                                    Icon(Icons.Default.ArrowForward, contentDescription = "Open")
+                                }
+                            }
+                        )
+                        Divider()
+                    }
+
+                    // Upcoming rotation
+                    item { SectionHeader(title = "Upcoming rotation") }
+                    items(upcomingRotate) { plant ->
+                        val remain = (plant.careProfile.rotationFrequency -
+                                daysSince(plant.careProfile.lastRotated)).coerceAtLeast(0)
+                        ListItem(
+                            headlineContent = {
+                                Text(plant.commonName, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            },
+                            supportingContent = {
+                                Text(if (remain == 0) "Rotate today" else "Rotate in $remain day${if (remain == 1) "" else "s"}")
                             },
                             trailingContent = {
                                 IconButton(onClick = { onOpenPlant(plant.plantId) }) {
@@ -169,7 +207,6 @@ private fun StatCard(
         }
     }
 }
-
 
 @Composable
 private fun SectionHeader(title: String, action: String? = null, onAction: (() -> Unit)? = null) {
