@@ -37,7 +37,7 @@ fun PlantPalApp(
             val backStackEntry by navController.currentBackStackEntryAsState()
             val currentRoute = backStackEntry?.destination?.route
 
-            if (currentRoute != null && 
+            if (currentRoute != null &&
                 !currentRoute.startsWith("plantDetail/") &&
                 currentRoute != "developerSettings" &&
                 currentRoute != "avatarCustomization") {
@@ -47,7 +47,7 @@ fun PlantPalApp(
                             selected = currentRoute == tab.route,
                             onClick = {
                                 navController.navigate(tab.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
+                                    popUpTo("home") {
                                         saveState = true
                                     }
                                     launchSingleTop = true
@@ -64,7 +64,7 @@ fun PlantPalApp(
         floatingActionButton = {
             val backStackEntry by navController.currentBackStackEntryAsState()
             val current = backStackEntry?.destination?.route
-            if (current == "home") {
+            if (current == "library") {
                 FloatingActionButton(onClick = { navController.navigate("addPlant/$currentUserId") }) {
                     Icon(Icons.Default.Add, contentDescription = "Add Plant")
                 }
@@ -77,6 +77,16 @@ fun PlantPalApp(
             modifier = Modifier.padding(innerPadding)
         ) {
             composable("home") {
+                DashboardScreen(
+                    onOpenLibrary = { navController.navigate("library") },
+                    onAddPlant = { navController.navigate("addPlant/$currentUserId") },
+                    onOpenPlant = { plantId ->
+                        navController.navigate("plantDetail/$currentUserId/$plantId")
+                    }
+                )
+            }
+
+            composable("library") {
                 val plantsViewModel: PlantsViewModel = viewModel()
                 LaunchedEffect(Unit) { plantsViewModel.loadPlants() }
 
@@ -88,25 +98,16 @@ fun PlantPalApp(
                 )
             }
 
+            // Library Screen
             composable("library") { CenterText("Plant Library (placeholder)") }
 
+            // Alerts Screen
             composable("alerts") { CenterText("Notifications (placeholder)") }
 
-            composable("profile") { 
-                ProfileScreen(
-                    onSignOut = onSignOut,
-                    onDeveloperSettings = {
-                        navController.navigate("developerSettings")
-                    }
-                ) 
-            }
+            // Profile Screen
+            composable("profile") { ProfileScreen(onSignOut = onSignOut) }
 
-            composable("developerSettings") {
-                DeveloperSettingsScreen(
-                    onBack = { navController.popBackStack() }
-                )
-            }
-
+            // Add Plant Screen
             composable(
                 route = "addPlant/{userId}",
                 arguments = listOf(navArgument("userId") { type = NavType.StringType })
@@ -115,10 +116,16 @@ fun PlantPalApp(
                 AddPlantCaptureScreen(
                     apiKey = PlantIdSecret.API_KEY,
                     currentUserId = userId,
-                    onSaved = { navController.popBackStack("home", inclusive = false) }
+                    onSaved = {
+                        navController.popBackStack(
+                            "library",
+                            inclusive = false
+                        )
+                    }
                 )
             }
 
+            // Plant Detail Screen
             composable(
                 route = "plantDetail/{userId}/{plantId}",
                 arguments = listOf(
@@ -137,6 +144,10 @@ fun PlantPalApp(
         }
     }
 }
+
+// --------------------------------------
+// Composables moved to file-level
+// --------------------------------------
 
 @Composable
 fun PlantDetailScreenWrapper(
@@ -196,9 +207,9 @@ fun ProfileScreen(
             Spacer(Modifier.width(8.dp))
             Text("Developer Settings")
         }
-        
+
         Spacer(Modifier.height(16.dp))
-        
+
         Button(onClick = onSignOut, modifier = Modifier.fillMaxWidth()) {
             Text("Sign Out")
         }
