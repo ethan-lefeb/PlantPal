@@ -1,6 +1,8 @@
 package com.example.plantpal
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -13,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import coil.compose.rememberAsyncImagePainter
 import kotlinx.coroutines.launch
@@ -39,6 +42,19 @@ fun AddPlantCaptureScreen(
     var notes by remember { mutableStateOf("") }
     var showSaveButton by remember { mutableStateOf(false) }
 
+    // --- Camera permission state ---
+    var hasCameraPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.CAMERA
+            ) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    // --- Launchers ---
+
+    // Gallery
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
@@ -61,14 +77,21 @@ fun AddPlantCaptureScreen(
         }
     }
 
-    val tempPhotoFile = remember {
-        File(context.cacheDir, "photo_${System.currentTimeMillis()}.jpg").apply { createNewFile() }
+    // Temp file for camera capture (matches file_paths: files-path path="plants/")
+    val tempPhotoFile = remember(context) {
+        val dir = File(context.filesDir, "plants").apply { mkdirs() }
+        File(dir, "photo_${System.currentTimeMillis()}.jpg").apply { createNewFile() }
     }
-    val tempUri = FileProvider.getUriForFile(
-        context,
-        "${context.packageName}.provider",
-        tempPhotoFile
-    )
+
+    val tempUri = remember(tempPhotoFile) {
+        FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider", // ensure manifest uses .fileprovider authority
+            tempPhotoFile
+        )
+    }
+
+    // Camera
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
@@ -90,6 +113,20 @@ fun AddPlantCaptureScreen(
             }
         }
     }
+
+    // Permission request launcher
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        hasCameraPermission = granted
+        if (granted) {
+            cameraLauncher.launch(tempUri)
+        } else {
+            error = "Camera permission is required to take a photo."
+        }
+    }
+
+    // --- UI ---
 
     Column(
         modifier = Modifier
@@ -118,7 +155,15 @@ fun AddPlantCaptureScreen(
                     TextButton(onClick = { galleryLauncher.launch("image/*") }) {
                         Text("Pick from Gallery")
                     }
-                    TextButton(onClick = { cameraLauncher.launch(tempUri) }) {
+                    TextButton(
+                        onClick = {
+                            if (hasCameraPermission) {
+                                cameraLauncher.launch(tempUri)
+                            } else {
+                                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                            }
+                        }
+                    ) {
                         Text("Take Photo")
                     }
                 }
@@ -128,9 +173,12 @@ fun AddPlantCaptureScreen(
         Spacer(Modifier.height(16.dp))
 
         when {
-            isLoading -> CircularProgressIndicator()
+            isLoading -> {
+                CircularProgressIndicator()
+            }
 
             identifiedPlant != null && !showSaveButton -> {
+                // brief loading state while we prep the UI
                 CircularProgressIndicator()
             }
 
@@ -154,18 +202,19 @@ fun AddPlantCaptureScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
                 suggestion.plant_details?.let { details ->
                     Spacer(Modifier.height(8.dp))
 
-                    if (details.watering != null) {
+                    details.watering?.let { watering ->
                         Text(
-                            "💧 Water every ${details.watering.min}-${details.watering.max} days",
+                            "💧 Water every ${watering.min}-${watering.max} days",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
 
-                    if (details.common_names?.isNotEmpty() == true) {
+                    if (!details.common_names.isNullOrEmpty()) {
                         Text(
                             "Also known as: ${details.common_names.take(3).joinToString(", ")}",
                             style = MaterialTheme.typography.bodySmall,
@@ -215,21 +264,27 @@ fun AddPlantCaptureScreen(
                 } else {
                     Button(
                         onClick = {
-                            scope.launch {
-                                handlePlantSaving(
-                                    context = context,
-                                    uri = imageUri!!,
-                                    plantName = customName.trim(),
-                                    scientificName = suggestion.plant_details?.scientific_name ?: "Unknown Species",
-                                    confidence = suggestion.probability ?: 0.0,
-                                    notes = notes.trim(),
-                                    userId = currentUserId,
-                                    plantRepository = plantRepository,
-                                    suggestion = suggestion,
-                                    onSaved = { savedId -> savedPlantId = savedId },
-                                    setLoading = { isLoading = it },
-                                    setError = { error = it }
-                                )
+                            val currentImage = imageUri
+                            if (currentImage != null) {
+                                scope.launch {
+                                    handlePlantSaving(
+                                        context = context,
+                                        uri = currentImage,
+                                        plantName = customName.trim(),
+                                        scientificName = suggestion.plant_details?.scientific_name
+                                            ?: "Unknown Species",
+                                        confidence = suggestion.probability ?: 0.0,
+                                        notes = notes.trim(),
+                                        userId = currentUserId,
+                                        plantRepository = plantRepository,
+                                        suggestion = suggestion,
+                                        onSaved = { savedId -> savedPlantId = savedId },
+                                        setLoading = { isLoading = it },
+                                        setError = { error = it }
+                                    )
+                                }
+                            } else {
+                                error = "No image selected."
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
@@ -312,12 +367,18 @@ private suspend fun handlePlantSaving(
 
         var downloadUrl = ""
         try {
-            val storageRef = com.google.firebase.storage.FirebaseStorage.getInstance().reference
+            val storageRef = com.google.firebase.storage.FirebaseStorage
+                .getInstance()
+                .reference
                 .child("plants/${java.util.UUID.randomUUID()}.jpg")
+
             storageRef.putFile(uri).await()
             downloadUrl = storageRef.downloadUrl.await()?.toString() ?: ""
         } catch (storageException: Exception) {
-            android.util.Log.w("AddPlant", "Storage upload failed, saving plant without remote photo: ${storageException.message}")
+            android.util.Log.w(
+                "AddPlant",
+                "Storage upload failed, saving plant without remote photo: ${storageException.message}"
+            )
             downloadUrl = uri.toString()
         }
 
@@ -329,11 +390,9 @@ private suspend fun handlePlantSaving(
             droughtTolerant = PlantCareDefaults.isDroughtTolerant(suggestion.plant_details?.taxonomy?.family)
         )
 
-        val wateringFrequency = if (careInfo.wateringMaxDays != null) {
-            careInfo.wateringMaxDays
-        } else {
-            PlantCareDefaults.getWateringFrequencyDays(careInfo.family, careInfo.genus)
-        }
+        val wateringFrequency = careInfo.wateringMaxDays
+            ?: PlantCareDefaults.getWateringFrequencyDays(careInfo.family, careInfo.genus)
+
         val sunlightReq = PlantCareDefaults.getSunlightRequirement(careInfo.family, careInfo.genus)
         val fertilizerFreq = PlantCareDefaults.getFertilizerFrequency(careInfo.family)
 
@@ -343,7 +402,7 @@ private suspend fun handlePlantSaving(
             commonName = plantName,
             scientificName = scientificName
         )
-        
+
         val newPlant = PlantProfile(
             userId = userId,
             commonName = plantName,
@@ -369,7 +428,6 @@ private suspend fun handlePlantSaving(
         }.onFailure { e ->
             setError(e.message ?: "Error saving to Firebase")
         }
-
     } catch (e: Exception) {
         e.printStackTrace()
         setError("An error occurred: ${e.message}")

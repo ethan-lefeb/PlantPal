@@ -98,11 +98,14 @@ fun PlantPalApp(
                 )
             }
 
-            // Library Screen
-            composable("library") { CenterText("Plant Library (placeholder)") }
+            composable("alerts") {
+                AlertsScreen(
+                    onOpenPlant = { plantId ->
+                        navController.navigate("plantDetail/$currentUserId/$plantId")
+                    }
+                )
+            }
 
-            // Alerts Screen
-            composable("alerts") { CenterText("Notifications (placeholder)") }
 
             // Profile Screen
             composable("profile") { ProfileScreen(onSignOut = onSignOut) }
@@ -145,9 +148,6 @@ fun PlantPalApp(
     }
 }
 
-// --------------------------------------
-// Composables moved to file-level
-// --------------------------------------
 
 @Composable
 fun PlantDetailScreenWrapper(
