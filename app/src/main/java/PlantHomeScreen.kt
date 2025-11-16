@@ -20,14 +20,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-// — UI STATE —
 data class PlantsUiState(
     val plants: List<PlantProfile> = emptyList(),
     val isLoading: Boolean = true,
     val error: String? = null
 )
 
-// — VIEWMODEL —
 class PlantsViewModel : ViewModel() {
     private val repository = PlantRepository()
     private val _uiState = MutableStateFlow(PlantsUiState())
@@ -53,7 +51,6 @@ class PlantsViewModel : ViewModel() {
     }
 }
 
-// — MAIN SCREEN —
 @Composable
 fun PlantsHomeScreen(
     viewModel: PlantsViewModel = viewModel(),
@@ -100,7 +97,6 @@ fun PlantsHomeScreen(
     }
 }
 
-// — UPDATED PLANT CARD —
 @Composable
 fun PlantCard(
     plant: PlantProfile,

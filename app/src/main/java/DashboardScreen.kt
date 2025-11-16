@@ -26,9 +26,6 @@ fun DashboardScreen(
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
-    // --------------------------------------
-    // LOAD PLANTS
-    // --------------------------------------
     LaunchedEffect(Unit) {
         scope.launch {
             isLoading = true
@@ -62,9 +59,6 @@ fun DashboardScreen(
         .sortedBy { (it.careProfile.rotationFrequency - daysSince(it.careProfile.lastRotated)).coerceAtLeast(0) }
         .take(5)
 
-    // --------------------------------------
-    // UI STATE
-    // --------------------------------------
 
     when {
         isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -95,9 +89,6 @@ fun DashboardScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
 
-                // --------------------------------------
-                // HEADER + STATS
-                // --------------------------------------
                 item {
                     Text("Dashboard", style = MaterialTheme.typography.headlineMedium)
                     Spacer(Modifier.height(8.dp))
@@ -117,9 +108,6 @@ fun DashboardScreen(
                     }
                 }
 
-                // --------------------------------------
-                // EMPTY STATE
-                // --------------------------------------
                 if (total == 0) {
                     item {
                         Spacer(Modifier.height(24.dp))
@@ -143,9 +131,6 @@ fun DashboardScreen(
                     }
                 }
 
-                // --------------------------------------
-                // UPCOMING WATERING
-                // --------------------------------------
                 else {
                     item {
                         SectionHeader(
@@ -181,9 +166,6 @@ fun DashboardScreen(
                         Divider()
                     }
 
-                    // --------------------------------------
-                    // UPCOMING ROTATION
-                    // --------------------------------------
                     item { SectionHeader(title = "Upcoming rotation") }
 
                     items(upcomingRotate) { plant ->
@@ -213,9 +195,6 @@ fun DashboardScreen(
                         Divider()
                     }
 
-                    // --------------------------------------
-                    // FOOTER BUTTONS
-                    // --------------------------------------
                     item {
                         Spacer(Modifier.height(8.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -236,9 +215,6 @@ fun DashboardScreen(
     }
 }
 
-// --------------------------------------
-// UPDATED STAT CARD
-// --------------------------------------
 @Composable
 private fun StatCard(
     label: String,
