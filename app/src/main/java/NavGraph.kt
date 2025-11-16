@@ -43,9 +43,8 @@ fun AppNavGraph(
             )
         }
 
-        // 🌿 Main App with Bottom Navigation Bar
         composable("main") {
-            PlantPalApp() // This contains its own NavHost and bottom nav
+            PlantPalApp()
         }
     }
 }

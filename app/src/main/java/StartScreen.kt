@@ -27,7 +27,6 @@ fun StartScreenContent(
     onLoginClick: () -> Unit = {},
     onSignupClick: () -> Unit = {}
 ) {
-    // 🌿 Gradient background (same as HomeScreen)
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -48,7 +47,6 @@ fun StartScreenContent(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 🌿 Title
             Text(
                 text = "Welcome to PlantPal!",
                 style = MaterialTheme.typography.headlineSmall.copy(
@@ -59,35 +57,32 @@ fun StartScreenContent(
                 modifier = Modifier.padding(bottom = 24.dp)
             )
 
-            // 🌿 Login Button
             Button(
                 onClick = onLoginClick,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
                 shape = MaterialTheme.shapes.medium,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF52796F))
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F61))
             ) {
                 Text("Go to Login", color = Color.White)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 🌿 Signup Button
             Button(
                 onClick = onSignupClick,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
                 shape = MaterialTheme.shapes.medium,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF52796F))
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F61))
             ) {
                 Text("Create Account", color = Color.White)
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // 🌿 Inspirational quote for balance
             Text(
                 text = "“Every plant you nurture helps you grow too.”",
                 style = MaterialTheme.typography.bodySmall.copy(
