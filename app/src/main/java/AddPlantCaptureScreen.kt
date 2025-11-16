@@ -30,9 +30,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.io.File
 
-// ========================================================= //
-//  ROOT SCREEN — HANDLES MODE SWITCH + BACKGROUND           //
-// ========================================================= //
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,7 +77,6 @@ fun AddPlantCaptureScreen(
                     .fillMaxSize()
             ) {
 
-                // MODE SWITCH
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
@@ -117,9 +114,6 @@ fun AddPlantCaptureScreen(
     }
 }
 
-// ========================================================= //
-//  MANUAL MODE                                              //
-// ========================================================= //
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -241,13 +235,10 @@ fun AddPlantManualMode(
                             .onSuccess { id ->
                                 saving = false
 
-                                // 🔔 Snackbar notification
                                 snackbarHostState.showSnackbar(
                                     message = "🌱 Plant added!",
                                     withDismissAction = true
                                 )
-
-                                // Navigate back (library)
                                 onSaved(id)
                             }
                             .onFailure { e ->
@@ -270,9 +261,6 @@ fun AddPlantManualMode(
     }
 }
 
-// ========================================================= //
-//  PHOTO MODE — (your existing code, updated & cleaned)      //
-// ========================================================= //
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -357,7 +345,6 @@ fun AddPlantPhotoMode(
         else error = "Camera permission required."
     }
 
-    // Auto-launch camera when permission is granted
     LaunchedEffect(shouldLaunchCamera, hasCameraPermission) {
         if (shouldLaunchCamera && hasCameraPermission) {
             val tempPhoto = File(context.cacheDir, "photo_${System.currentTimeMillis()}.jpg")
@@ -515,10 +502,6 @@ fun AddPlantPhotoMode(
     }
 }
 
-// ========================================================= //
-// IDENTIFICATION HELPERS                                    //
-// ========================================================= //
-
 private suspend fun handlePlantIdentification(
     context: Context,
     uri: Uri,
@@ -630,9 +613,6 @@ private suspend fun handlePlantSaving(
     }
 }
 
-// ========================================================= //
-// SIMPLE DROPDOWN MENU COMPONENT                            //
-// ========================================================= //
 
 @Composable
 fun DropdownMenuBox(
