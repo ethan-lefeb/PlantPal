@@ -7,36 +7,24 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.padding
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.core.app.ActivityCompat
 import androidx.navigation.NavType
-import androidx.navigation.navArgument
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.plantpal.ui.theme.PlantPalTheme
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessaging
 
 class MainActivity : ComponentActivity() {
 
-    // registers permission launcher
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (!isGranted) {
@@ -48,7 +36,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // requests permissions to post notifications (Android 13+)
+        // Android 13+ notification permissions
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val permissionCheck = ActivityCompat.checkSelfPermission(
                 this, Manifest.permission.POST_NOTIFICATIONS
@@ -58,7 +46,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // retrieves and stores FCM token
+        // Retrieve FCM token
         FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
             val userId = AuthRepository.currentUserId()
             if (userId != null) {
@@ -68,12 +56,8 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             PlantPalTheme {
-                val navController = rememberNavController()
-                val startDestination = if (AuthRepository.currentUserId() != null) {
-                    "home"
-                } else {
-                    "start"
-                }
+                val startDestination =
+                    if (AuthRepository.currentUserId() != null) "home" else "start"
 
                 Scaffold { innerPadding ->
                     AppNavigation(
@@ -85,67 +69,69 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // stores fcm token in firestore for targeted notifications
     private fun saveFcmTokenToFirestore(userId: String, token: String) {
         val db = FirebaseFirestore.getInstance()
         val userRef = db.collection("users").document(userId)
         userRef.update("fcmToken", token)
             .addOnSuccessListener { println("Token saved for user: $userId") }
-            .addOnFailureListener { e ->
-                println("Failed to save FCM token: ${e.message}")
-            }
+            .addOnFailureListener { e -> println("Failed to save FCM token: ${e.message}") }
     }
 }
 
 @Composable
 fun AppNavigation(modifier: Modifier = Modifier, startDestination: String = "start") {
     val navController = rememberNavController()
-    val currentUserId = AuthRepository.currentUserId() ?: "TEST_USER_123" // fallback for testing
+    val currentUserId = AuthRepository.currentUserId() ?: "TEST_USER_123"
 
-                Scaffold {
     NavHost(
         navController = navController,
         startDestination = startDestination,
         modifier = modifier
     ) {
-        composable("start") { HomeScreen(navController) }
 
-                    innerPadding ->
-                    AppNavGraph(
-                        navController = navController,
+        // Start Screen
+        composable("start") {
+            AccountCreationScreen()
+        }
+
+        // Login Screen
         composable("login") {
             LoginScreen(
                 onSuccess = {
-                    navController.navigate("home") { popUpTo("login") { inclusive = true } }
+                    navController.navigate("home") {
+                        popUpTo("login") { inclusive = true }
+                    }
                 },
                 onNavigateToSignup = { navController.navigate("signup") }
             )
         }
 
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+        // Signup Screen
         composable("signup") {
             AccountCreationScreen(
                 onSuccess = {
-                    navController.navigate("home") { popUpTo("signup") { inclusive = true } }
+                    navController.navigate("home") {
+                        popUpTo("signup") { inclusive = true }
+                    }
                 },
                 onNavigateToLogin = { navController.navigate("login") }
             )
         }
 
-            }
-        }
+        // Home Screen
         composable("home") {
             PlantPalApp(
                 currentUserId = currentUserId,
                 onSignOut = {
                     AuthRepository.signOut()
-                    navController.navigate("login") { popUpTo("home") { inclusive = true } }
+                    navController.navigate("login") {
+                        popUpTo("home") { inclusive = true }
+                    }
                 }
             )
         }
 
+        // Plant Detail
         composable(
             route = "plantDetail/{plantId}",
             arguments = listOf(navArgument("plantId") { type = NavType.StringType })
@@ -159,7 +145,7 @@ fun AppNavigation(modifier: Modifier = Modifier, startDestination: String = "sta
 
             LaunchedEffect(plantId) {
                 isLoading = true
-                val res = repo.getPlant(plantId) // Result<PlantProfile>
+                val res = repo.getPlant(plantId)
                 if (res.isSuccess) {
                     plant = res.getOrNull()
                     error = null
@@ -170,18 +156,19 @@ fun AppNavigation(modifier: Modifier = Modifier, startDestination: String = "sta
             }
 
             when {
-                isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
+                isLoading -> Box(
+                    Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) { CircularProgressIndicator() }
 
-                error != null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Error: $error", color = MaterialTheme.colorScheme.error)
-                }
+                error != null -> Box(
+                    Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) { Text("Error: $error", color = MaterialTheme.colorScheme.error) }
 
                 plant != null -> {
-                    val currentPlant = plant!! // avoid delegated smart-cast issues
                     PlantCareDetailScreen(
-                        plant = currentPlant,
+                        plant = plant!!,
                         onBack = { navController.popBackStack() }
                     )
                 }

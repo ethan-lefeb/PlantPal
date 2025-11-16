@@ -16,37 +16,39 @@ fun AppNavGraph(
         startDestination = "StartScreen",
         modifier = modifier
     ) {
-        // 🌱 Start / Auth Screens
+        // 🌱 Start Screen
         composable("StartScreen") {
             StartScreen(navController = navController)
         }
 
+        // 🌱 Signup Screen
         composable("signup") {
             AccountCreationScreen(
                 onSuccess = {
-                    navController.navigate("main") {
-                        popUpTo(0) { inclusive = true } // Clear back stack
+                    navController.navigate("home") {
+                        popUpTo("StartScreen") { inclusive = true } // Clear auth flow
                     }
                 },
                 onNavigateToLogin = { navController.navigate("login") }
             )
         }
 
+        // 🌱 Login Screen
         composable("login") {
             LoginScreen(
                 onSuccess = {
-                    navController.navigate("main") {
-                        popUpTo(0) { inclusive = true }
+                    navController.navigate("home") {
+                        popUpTo("StartScreen") { inclusive = true }
                     }
                 },
                 onNavigateToSignup = { navController.navigate("signup") }
             )
         }
 
-        composable("main") {
-            PlantPalApp()
+        // 🌿 Home / Main App Screen
         composable("home") {
-            val currentUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+            val currentUser =
+                com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
             val currentUserId = currentUser?.uid ?: "TEST_USER_123" // fallback for testing
 
             PlantPalApp(
@@ -61,3 +63,5 @@ fun AppNavGraph(
         }
     }
 }
+
+

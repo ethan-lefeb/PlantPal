@@ -9,29 +9,28 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
-import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
-    viewModel: AuthViewModel = viewModel(),
     onSuccess: () -> Unit = {},
     onNavigateToSignup: () -> Unit = {}
 ) {
+    val scope = rememberCoroutineScope()
+
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
-
-    val uiState by viewModel.uiState.collectAsState()
+    var isLoading by rememberSaveable { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     Box(
         modifier = Modifier
@@ -79,6 +78,7 @@ fun LoginScreen(
                 value = email,
                 onValueChange = { email = it },
                 label = { Text("Email") },
+                singleLine = true,
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -90,22 +90,43 @@ fun LoginScreen(
                 value = password,
                 onValueChange = { password = it },
                 label = { Text("Password") },
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Login Button
             Button(
-                onClick = { viewModel.login(email.trim(), password.trim()) },
+                onClick = {
+                    if (email.isBlank() || password.isBlank()) {
+                        errorMessage = "Email and password are required."
+                        return@Button
+                    }
+
+                    isLoading = true
+                    errorMessage = null
+
+                    scope.launch {
+                        val result = AuthRepository.login(email.trim(), password)
+                        isLoading = false
+                        result
+                            .onSuccess { onSuccess() }
+                            .onFailure { e ->
+                                errorMessage = e.message ?: "Login failed"
+                            }
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
-                enabled = !uiState.isLoading,
+                enabled = !isLoading,
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F61)),
                 shape = RoundedCornerShape(50)
             ) {
-                if (uiState.isLoading) {
+                if (isLoading) {
                     CircularProgressIndicator(
                         color = Color.White,
                         modifier = Modifier.size(20.dp)
@@ -125,24 +146,14 @@ fun LoginScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Error feedback
-            if (uiState.error != null) {
+            if (errorMessage != null) {
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Error: ${uiState.error}",
+                    text = errorMessage!!,
                     color = MaterialTheme.colorScheme.error,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 8.dp)
+                    modifier = Modifier.padding(horizontal = 8.dp)
                 )
-            }
-
-            // Success feedback
-            if (uiState.success) {
-                LaunchedEffect(uiState.success) {
-                    onSuccess()
-                    viewModel.resetState()
-                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -162,81 +173,7 @@ fun LoginScreen(
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun LoginScreenPreview() {
-    Box(modifier = Modifier.fillMaxSize()) {
-        LoginScreen(onNavigateToSignup = {}, onSuccess = {})
-fun LoginScreen(onSuccess: () -> Unit, onNavigateToSignup: () -> Unit) {
-    val scope = rememberCoroutineScope()
-
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        Text("Welcome!", style = MaterialTheme.typography.headlineMedium)
-        Spacer(modifier = Modifier.height(24.dp))
-
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Password") },
-            singleLine = true,
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-
-        errorMessage?.let {
-            Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(bottom = 8.dp))
-        }
-
-        // Login Button
-        Button(
-            onClick = {
-                isLoading = true
-                errorMessage = null
-                scope.launch {
-                    val result = AuthRepository.login(email, password)
-                    isLoading = false
-                    result.onSuccess { onSuccess() }
-                        .onFailure { e -> errorMessage = e.message ?: "Login failed" }
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !isLoading,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            )
-        ) {
-            Text(if (isLoading) "Logging in..." else "Log in")
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // TextButton for signup
-        TextButton(
-            onClick = onNavigateToSignup,
-            colors = ButtonDefaults.textButtonColors(
-                contentColor = MaterialTheme.colorScheme.primary
-            )
-        ) {
-            Text("Need an account? Sign up")
-        }
-    }
+    LoginScreen()
 }
 
 
