@@ -23,7 +23,7 @@ fun AppNavGraph(navController: NavHostController) {
         }
 
         composable("login") {
-            LoginScreen(
+            LoginScreenPreview(
                 onSuccess = {
                     navController.navigate("home") {
                         popUpTo("login") { inclusive = true }
@@ -36,18 +36,7 @@ fun AppNavGraph(navController: NavHostController) {
         }
 
         composable("home") {
-            val currentUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
-            val currentUserId = currentUser?.uid ?: "TEST_USER_123" // fallback for testing
-
-            PlantPalApp(
-                currentUserId = currentUserId,
-                onSignOut = {
-                    AuthRepository.signOut()
-                    navController.navigate("login") {
-                        popUpTo("home") { inclusive = true } // clear backstack
-                    }
-                }
-            )
+            PlantPalApp()
         }
     }
 }
