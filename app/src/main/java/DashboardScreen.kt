@@ -26,18 +26,21 @@ fun DashboardScreen(
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
+    // --------------------------------------
+    // LOAD PLANTS
+    // --------------------------------------
     LaunchedEffect(Unit) {
         scope.launch {
             isLoading = true
-            val res = repo.getAllPlants()
-            res.onSuccess { plants = it; error = null }
+            repo.getAllPlants()
+                .onSuccess { plants = it; error = null }
                 .onFailure { error = it.message }
             isLoading = false
         }
     }
 
     fun daysSince(ts: Long): Int {
-        if (ts <= 0L) return Int.MAX_VALUE // treat as "never done"
+        if (ts <= 0L) return Int.MAX_VALUE
         val days = (System.currentTimeMillis() - ts) / (1000L * 60 * 60 * 24)
         return max(0, days.toInt())
     }
@@ -56,16 +59,18 @@ fun DashboardScreen(
         .take(5)
 
     val upcomingRotate = plants
-        .sortedBy {
-            (it.careProfile.rotationFrequency - daysSince(it.careProfile.lastRotated))
-                .coerceAtLeast(0)
-        }
+        .sortedBy { (it.careProfile.rotationFrequency - daysSince(it.careProfile.lastRotated)).coerceAtLeast(0) }
         .take(5)
+
+    // --------------------------------------
+    // UI STATE
+    // --------------------------------------
 
     when {
         isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
+
         error != null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("Couldn’t load your plants.", color = MaterialTheme.colorScheme.error)
@@ -81,6 +86,7 @@ fun DashboardScreen(
                 }) { Text("Retry") }
             }
         }
+
         else -> {
             LazyColumn(
                 modifier = Modifier
@@ -88,38 +94,59 @@ fun DashboardScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+
+                // --------------------------------------
+                // HEADER + STATS
+                // --------------------------------------
                 item {
                     Text("Dashboard", style = MaterialTheme.typography.headlineMedium)
                     Spacer(Modifier.height(8.dp))
-                    // Stats row #1
+
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         StatCard("Total plants", total.toString(), modifier = Modifier.weight(1f))
                         StatCard("Water due",   dueWater.toString(), modifier = Modifier.weight(1f))
                         StatCard("Fertilize due", dueFert.toString(), modifier = Modifier.weight(1f))
                     }
-                    // Stats row #2 (rotation)
+
                     Spacer(Modifier.height(12.dp))
+
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         StatCard("Rotate due", dueRotate.toString(), modifier = Modifier.weight(1f))
-                        // Optional: add more quick stats later; keep layout balanced
                         Spacer(Modifier.weight(1f))
                         Spacer(Modifier.weight(1f))
                     }
                 }
 
+                // --------------------------------------
+                // EMPTY STATE
+                // --------------------------------------
                 if (total == 0) {
                     item {
                         Spacer(Modifier.height(24.dp))
-                        Card(Modifier.fillMaxWidth()) {
-                            Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            ),
+                            elevation = CardDefaults.cardElevation(4.dp),
+                            shape = MaterialTheme.shapes.medium
+                        ) {
+                            Column(
+                                Modifier.padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
                                 Text("Let’s add your first plant 🌱")
                                 Spacer(Modifier.height(12.dp))
                                 Button(onClick = onAddPlant) { Text("Add a plant") }
                             }
                         }
                     }
-                } else {
-                    // Upcoming water
+                }
+
+                // --------------------------------------
+                // UPCOMING WATERING
+                // --------------------------------------
+                else {
                     item {
                         SectionHeader(
                             title = "Upcoming water",
@@ -127,15 +154,23 @@ fun DashboardScreen(
                             onAction = onOpenLibrary
                         )
                     }
+
                     items(upcomingWater) { plant ->
                         val days = daysSince(plant.lastWatered)
                         val dueIn = (plant.wateringFrequency - days).coerceAtLeast(0)
+
                         ListItem(
+                            colors = ListItemDefaults.colors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            ),
                             headlineContent = {
                                 Text(plant.commonName, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             },
                             supportingContent = {
-                                Text(if (dueIn == 0) "Water today" else "Water in $dueIn day${if (dueIn == 1) "" else "s"}")
+                                Text(
+                                    if (dueIn == 0) "Water today"
+                                    else "Water in $dueIn day${if (dueIn == 1) "" else "s"}"
+                                )
                             },
                             trailingContent = {
                                 IconButton(onClick = { onOpenPlant(plant.plantId) }) {
@@ -146,17 +181,28 @@ fun DashboardScreen(
                         Divider()
                     }
 
-                    // Upcoming rotation
+                    // --------------------------------------
+                    // UPCOMING ROTATION
+                    // --------------------------------------
                     item { SectionHeader(title = "Upcoming rotation") }
+
                     items(upcomingRotate) { plant ->
                         val remain = (plant.careProfile.rotationFrequency -
-                                daysSince(plant.careProfile.lastRotated)).coerceAtLeast(0)
+                                daysSince(plant.careProfile.lastRotated))
+                            .coerceAtLeast(0)
+
                         ListItem(
+                            colors = ListItemDefaults.colors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            ),
                             headlineContent = {
                                 Text(plant.commonName, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             },
                             supportingContent = {
-                                Text(if (remain == 0) "Rotate today" else "Rotate in $remain day${if (remain == 1) "" else "s"}")
+                                Text(
+                                    if (remain == 0) "Rotate today"
+                                    else "Rotate in $remain day${if (remain == 1) "" else "s"}"
+                                )
                             },
                             trailingContent = {
                                 IconButton(onClick = { onOpenPlant(plant.plantId) }) {
@@ -167,6 +213,9 @@ fun DashboardScreen(
                         Divider()
                     }
 
+                    // --------------------------------------
+                    // FOOTER BUTTONS
+                    // --------------------------------------
                     item {
                         Spacer(Modifier.height(8.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -174,6 +223,7 @@ fun DashboardScreen(
                                 modifier = Modifier.weight(1f),
                                 onClick = onOpenLibrary
                             ) { Text("Open Library") }
+
                             Button(
                                 modifier = Modifier.weight(1f),
                                 onClick = onAddPlant
@@ -186,13 +236,23 @@ fun DashboardScreen(
     }
 }
 
+// --------------------------------------
+// UPDATED STAT CARD
+// --------------------------------------
 @Composable
 private fun StatCard(
     label: String,
     value: String,
     modifier: Modifier = Modifier
 ) {
-    Card(modifier = modifier) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        elevation = CardDefaults.cardElevation(4.dp),
+        shape = MaterialTheme.shapes.medium
+    ) {
         Column(
             Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally

@@ -1,6 +1,5 @@
 package com.example.plantpal
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,61 +10,50 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.rememberAsyncImagePainter
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-// --- UI STATE ---
+// — UI STATE —
 data class PlantsUiState(
     val plants: List<PlantProfile> = emptyList(),
     val isLoading: Boolean = true,
     val error: String? = null
 )
 
-// --- VIEWMODEL ---
+// — VIEWMODEL —
 class PlantsViewModel : ViewModel() {
     private val repository = PlantRepository()
     private val _uiState = MutableStateFlow(PlantsUiState())
     val uiState: StateFlow<PlantsUiState> = _uiState.asStateFlow()
 
-    init {
-        loadPlants()
-    }
+    init { loadPlants() }
 
     fun loadPlants() {
         viewModelScope.launch {
             _uiState.value = PlantsUiState(isLoading = true)
-            val result = repository.getAllPlants()
-
-            result.onSuccess { plants ->
-                _uiState.value = PlantsUiState(plants = plants, isLoading = false)
-            }.onFailure { error ->
-                _uiState.value = PlantsUiState(error = error.message, isLoading = false)
-            }
+            repository.getAllPlants()
+                .onSuccess { _uiState.value = PlantsUiState(it, isLoading = false) }
+                .onFailure { _uiState.value = PlantsUiState(error = it.message, isLoading = false) }
         }
     }
 
     fun deletePlant(plant: PlantProfile) {
         viewModelScope.launch {
-            val result = repository.deletePlant(plant.plantId)
-            result.onSuccess {
-                loadPlants()
-            }.onFailure { error ->
-                _uiState.value = _uiState.value.copy(error = error.message)
-            }
+            repository.deletePlant(plant.plantId)
+                .onSuccess { loadPlants() }
+                .onFailure { _uiState.value = _uiState.value.copy(error = it.message) }
         }
     }
 }
 
-// --- MAIN SCREEN ---
+// — MAIN SCREEN —
 @Composable
 fun PlantsHomeScreen(
     viewModel: PlantsViewModel = viewModel(),
@@ -73,80 +61,46 @@ fun PlantsHomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    Column(
-        modifier = Modifier.fillMaxSize()
-    ) {
+    Column(Modifier.fillMaxSize()) {
         when {
-            uiState.isLoading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
+            uiState.isLoading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
+                CircularProgressIndicator()
+            }
+
+            uiState.error != null -> Box(Modifier.fillMaxSize(), Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Error loading plants", color = MaterialTheme.colorScheme.error)
+                    Spacer(Modifier.height(12.dp))
+                    Button(onClick = { viewModel.loadPlants() }) { Text("Retry") }
                 }
             }
 
-            uiState.error != null -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = "Error loading plants",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = uiState.error ?: "Unknown error",
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { viewModel.loadPlants() }) {
-                            Text("Retry")
-                        }
-                    }
-                }
+            uiState.plants.isEmpty() -> Box(Modifier.fillMaxSize(), Alignment.Center) {
+                Text(
+                    "Your plants will appear here 🌱\n\nTap + to add your first plant!",
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center
+                )
             }
 
-            uiState.plants.isEmpty() -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Your plants will appear here \uD83C\uDF31\n\nTap + to add your first plant!",
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center
+            else -> LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(uiState.plants) { plant ->
+                    PlantCard(
+                        plant = plant,
+                        onDelete = { viewModel.deletePlant(it) },
+                        onClick = { onPlantClick(plant.plantId) }
                     )
-                }
-            }
-
-            else -> {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(uiState.plants) { plant ->
-                        PlantCard(
-                            plant = plant,
-                            onDelete = { viewModel.deletePlant(it) },
-                            onClick = { onPlantClick(plant.plantId) }
-                        )
-                    }
                 }
             }
         }
     }
 }
 
-// --- CARD ---
+// — UPDATED PLANT CARD —
 @Composable
 fun PlantCard(
     plant: PlantProfile,
@@ -159,44 +113,46 @@ fun PlantCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        shape = MaterialTheme.shapes.medium
     ) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
+                .padding(12.dp)
+                .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
 
             PlantAvatar(
                 avatarConfig = plant.avatarConfig,
                 health = plant.health,
-                modifier = Modifier,
                 size = 80.dp,
-                animated = false
+                animated = false,
+                modifier = Modifier
             )
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(Modifier.width(12.dp))
 
-            Column(modifier = Modifier.weight(1f)) {
+            Column(Modifier.weight(1f)) {
+                Text(plant.commonName, style = MaterialTheme.typography.titleMedium)
                 Text(
-                    text = plant.commonName,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = plant.scientificName,
+                    plant.scientificName,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                val healthEmoji = when (plant.health) {
-                    "healthy" -> "\uD83D\uDE0A"  // 😊
-                    "warning" -> "\uD83D\uDE1F"  // 😟
-                    "critical" -> "\uD83D\uDE22" // 😢
-                    else -> "\uD83C\uDF31"       // 🌱
+                val emoji = when (plant.health) {
+                    "healthy" -> "😊"
+                    "warning" -> "😟"
+                    "critical" -> "😢"
+                    else -> "🌱"
                 }
+
                 Text(
-                    text = "$healthEmoji ${plant.health.replaceFirstChar { it.uppercase() }}",
+                    "$emoji ${plant.health.replaceFirstChar { it.uppercase() }}",
                     style = MaterialTheme.typography.bodySmall,
                     color = when (plant.health) {
                         "healthy" -> MaterialTheme.colorScheme.primary
@@ -204,24 +160,10 @@ fun PlantCard(
                         else -> MaterialTheme.colorScheme.error
                     }
                 )
-
-                if (plant.careInfo.wateringMaxDays != null) {
-                    Text(
-                        text = "\uD83D\uDCA7 Water every ${plant.careInfo.wateringMinDays}-${plant.careInfo.wateringMaxDays} days",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
             }
 
-            IconButton(
-                onClick = { showDeleteDialog = true }
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete plant",
-                    tint = MaterialTheme.colorScheme.error
-                )
+            IconButton(onClick = { showDeleteDialog = true }) {
+                Icon(Icons.Default.Delete, contentDescription = "Delete plant", tint = MaterialTheme.colorScheme.error)
             }
         }
     }
@@ -230,24 +172,15 @@ fun PlantCard(
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text("Delete Plant?") },
-            text = { Text("Are you sure you want to delete ${plant.commonName}? This action cannot be undone.") },
+            text = { Text("Are you sure you want to delete ${plant.commonName}?") },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        showDeleteDialog = false
-                        onDelete(plant)
-                    },
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Text("Delete")
-                }
+                TextButton(onClick = {
+                    showDeleteDialog = false
+                    onDelete(plant)
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
-                }
+                TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel") }
             }
         )
     }
