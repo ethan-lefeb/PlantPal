@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 fun AvatarCustomizationScreen(
     currentConfig: AvatarConfig,
     plantName: String,
+    plant: PlantProfile? = null,
     onSave: (AvatarConfig) -> Unit,
     onBack: () -> Unit
 ) {
@@ -170,9 +171,18 @@ fun AvatarCustomizationScreen(
 
             OutlinedButton(
                 onClick = {
-                    val randomConfig = AvatarGenerator.generateRandomAvatar()
-                    selectedBaseType = randomConfig.baseType
-                    selectedColor = randomConfig.color
+                    val autoConfig = if (plant != null) {
+                        AvatarGenerator.generateAvatarForPlant(
+                            family = plant.careInfo.family,
+                            genus = plant.careInfo.genus,
+                            commonName = plant.commonName,
+                            scientificName = plant.scientificName
+                        )
+                    } else {
+                        AvatarGenerator.generateRandomAvatar()
+                    }
+                    selectedBaseType = autoConfig.baseType
+                    selectedColor = autoConfig.color
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {

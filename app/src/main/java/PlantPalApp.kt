@@ -39,6 +39,7 @@ fun PlantPalApp(
 
             if (currentRoute != null &&
                 !currentRoute.startsWith("plantDetail/") &&
+                !currentRoute.startsWith("addPlant/") &&
                 currentRoute != "developerSettings" &&
                 currentRoute != "avatarCustomization") {
                 NavigationBar {
@@ -106,11 +107,8 @@ fun PlantPalApp(
                 )
             }
 
-
-            // Profile Screen
             composable("profile") { ProfileScreen(onSignOut = onSignOut) }
 
-            // Add Plant Screen
             composable(
                 route = "addPlant/{userId}",
                 arguments = listOf(navArgument("userId") { type = NavType.StringType })
@@ -124,11 +122,13 @@ fun PlantPalApp(
                             "library",
                             inclusive = false
                         )
+                    },
+                    onBack = {
+                        navController.popBackStack()
                     }
                 )
             }
 
-            // Plant Detail Screen
             composable(
                 route = "plantDetail/{userId}/{plantId}",
                 arguments = listOf(
