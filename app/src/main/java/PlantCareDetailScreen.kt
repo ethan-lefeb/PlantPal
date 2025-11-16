@@ -1,7 +1,10 @@
 package com.example.plantpal
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -12,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.text.style.TextOverflow
@@ -23,7 +27,7 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.max
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun PlantCareDetailScreen(
     plant: PlantProfile,
@@ -32,24 +36,23 @@ fun PlantCareDetailScreen(
     val plantRepository = remember { PlantRepository() }
     var currentPlant by remember { mutableStateOf(plant) }
 
-    // loading flags for care actions
     var isWatering by remember { mutableStateOf(false) }
     var isFertilizing by remember { mutableStateOf(false) }
     var isRotating by remember { mutableStateOf(false) }
 
-    // ui state
     var showEdit by remember { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    var avatarCardSize by remember { mutableStateOf(androidx.compose.ui.geometry.Size.Zero) }
     var showAvatarCustomization by remember { mutableStateOf(false) }
+
+    var avatarCenterX by remember { mutableStateOf(0f) }
+    var avatarCenterY by remember { mutableStateOf(0f) }
 
     val animationController = rememberAvatarAnimationController(
         health = currentPlant.health,
         daysSinceWatering = ((System.currentTimeMillis() - currentPlant.lastWatered) / (1000 * 60 * 60 * 24)).toInt()
     )
-
     val particleSystem = rememberParticleSystem()
 
     LaunchedEffect(currentPlant.health, currentPlant.lastWatered) {
@@ -89,19 +92,98 @@ fun PlantCareDetailScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            // --- Plant Image ---
-            if (currentPlant.photoUrl.isNotEmpty()) {
-                Card(
+            val pagerState = rememberPagerState(pageCount = { 2 })
+            
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(280.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                        .fillMaxSize()
+                        .onSizeChanged { size ->
+                            avatarCenterX = size.width / 2f
+                            avatarCenterY = size.height / 2f
+                        }
                 ) {
-                    Image(
-                        painter = rememberAsyncImagePainter(currentPlant.photoUrl),
-                        contentDescription = currentPlant.commonName,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize()
+                    ) { page ->
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            when (page) {
+                                0 -> {
+                                    Box(modifier = Modifier.fillMaxSize()) {
+                                        PlantAvatar(
+                                            avatarConfig = currentPlant.avatarConfig,
+                                            health = currentPlant.health,
+                                            modifier = Modifier.fillMaxSize(0.8f).align(Alignment.Center),
+                                            size = 200.dp,
+                                            animated = true,
+                                            animationController = animationController
+                                        )
+                                        ParticleEffect(
+                                            particleSystem = particleSystem,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    }
+                                }
+                                1 -> {
+                                    if (currentPlant.photoUrl.isNotEmpty()) {
+                                        Image(
+                                            painter = rememberAsyncImagePainter(currentPlant.photoUrl),
+                                            contentDescription = currentPlant.commonName,
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    } else {
+                                        Text(
+                                            "No photo available",
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        repeat(2) { index ->
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .padding(2.dp)
+                            ) {
+                                Surface(
+                                    modifier = Modifier.fillMaxSize(),
+                                    shape = MaterialTheme.shapes.small,
+                                    color = if (pagerState.currentPage == index) 
+                                        MaterialTheme.colorScheme.primary 
+                                    else 
+                                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                                ) {}
+                            }
+                        }
+                    }
+
+                    Text(
+                        text = if (pagerState.currentPage == 0) "Avatar" else "Photo",
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(16.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
@@ -112,12 +194,11 @@ fun PlantCareDetailScreen(
                 onClick = { showAvatarCustomization = true },
                 modifier = Modifier.fillMaxWidth(0.6f)
             ) {
-                Text("\uD83C\uDFA8 Customize Avatar")
+                Text("🎨 Customize Avatar")
             }
 
             Spacer(Modifier.height(24.dp))
 
-            // --- Plant Basic Info ---
             Text(
                 text = currentPlant.commonName,
                 style = MaterialTheme.typography.headlineSmall
@@ -150,9 +231,14 @@ fun PlantCareDetailScreen(
                     onClick = {
                         scope.launch {
                             isWatering = true
+                            particleSystem.waterEffect(centerX = avatarCenterX, centerY = avatarCenterY)
+                            animationController.triggerAnimation(AnimationType.WATERING, intensity = 1.0f)
+                            
                             val result = plantRepository.waterPlant(currentPlant.plantId)
                             if (result.isSuccess) {
                                 currentPlant = currentPlant.copy(lastWatered = System.currentTimeMillis())
+                                delay(500)
+                                animationController.triggerAnimation(AnimationType.HAPPY, intensity = 1.0f)
                             }
                             isWatering = false
                         }
@@ -175,9 +261,14 @@ fun PlantCareDetailScreen(
                     onClick = {
                         scope.launch {
                             isFertilizing = true
+                            particleSystem.fertilizeEffect(centerX = avatarCenterX, centerY = avatarCenterY)
+                            animationController.triggerAnimation(AnimationType.FERTILIZING, intensity = 1.0f)
+                            
                             val result = plantRepository.fertilizePlant(currentPlant.plantId)
                             if (result.isSuccess) {
                                 currentPlant = currentPlant.copy(lastFertilized = System.currentTimeMillis())
+                                delay(500)
+                                animationController.triggerAnimation(AnimationType.HAPPY, intensity = 1.0f)
                             }
                             isFertilizing = false
                         }
@@ -194,6 +285,42 @@ fun PlantCareDetailScreen(
                     } else {
                         Text("🌿 Fertilize")
                     }
+                }
+            }
+            
+            Spacer(Modifier.height(8.dp))
+
+            Button(
+                onClick = {
+                    scope.launch {
+                        isRotating = true
+                        animationController.triggerAnimation(AnimationType.GROWING, intensity = 1.0f)
+                        
+                        val updated = currentPlant.copy(
+                            careProfile = currentPlant.careProfile.copy(
+                                lastRotated = System.currentTimeMillis()
+                            )
+                        )
+                        val result = plantRepository.updatePlant(updated)
+                        if (result.isSuccess) {
+                            currentPlant = updated
+                            delay(500)
+                            animationController.triggerAnimation(AnimationType.HAPPY, intensity = 1.0f)
+                        }
+                        isRotating = false
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isRotating
+            ) {
+                if (isRotating) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("🔄 Rotate Plant")
                 }
             }
 
@@ -227,6 +354,7 @@ fun PlantCareDetailScreen(
         AvatarCustomizationScreen(
             currentConfig = currentPlant.avatarConfig,
             plantName = currentPlant.commonName,
+            plant = currentPlant,
             onSave = { newConfig ->
                 scope.launch {
                     saving = true
@@ -263,7 +391,7 @@ private fun CareSummary(p: PlantProfile) {
         return max(0, days.toInt())
     }
     fun tsLabel(ts: Long): String =
-        if (ts <= 0L) "—"
+        if (ts <= 0L) "Ã¢â‚¬â€"
         else SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date(ts))
 
     val rotationEvery = p.careProfile.rotationFrequency
@@ -290,9 +418,9 @@ private fun CareSummary(p: PlantProfile) {
             Column(Modifier.padding(12.dp)) {
                 Text("Last care", style = MaterialTheme.typography.titleSmall)
                 Spacer(Modifier.height(6.dp))
-                CareRow("💧 Watered", tsLabel(p.lastWatered), daysSince(p.lastWatered))
-                CareRow("🌿 Fertilized", tsLabel(p.lastFertilized), daysSince(p.lastFertilized))
-                CareRow("🔄 Rotated", tsLabel(lastRotatedTs), daysSince(lastRotatedTs))
+                CareRow("Ã°Å¸â€™Â§ Watered", tsLabel(p.lastWatered), daysSince(p.lastWatered))
+                CareRow("Ã°Å¸Å’Â¿ Fertilized", tsLabel(p.lastFertilized), daysSince(p.lastFertilized))
+                CareRow("Ã°Å¸â€â€ž Rotated", tsLabel(lastRotatedTs), daysSince(lastRotatedTs))
             }
         }
     }
@@ -305,8 +433,8 @@ private fun CareRow(label: String, dateLabel: String, daysSince: Int) {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        val right = if (dateLabel == "—") "—"
-        else "$dateLabel  ·  ${if (daysSince == 0) "today" else "$daysSince d ago"}"
+        val right = if (dateLabel == "Ã¢â‚¬â€") "Ã¢â‚¬â€"
+        else "$dateLabel  Ã‚Â·  ${if (daysSince == 0) "today" else "$daysSince d ago"}"
         Text(right, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
