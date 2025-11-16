@@ -7,11 +7,19 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -22,11 +30,257 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.io.File
 
+// ========================================================= //
+//  ROOT SCREEN — HANDLES MODE SWITCH + BACKGROUND           //
+// ========================================================= //
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddPlantCaptureScreen(
     currentUserId: String,
     apiKey: String,
-    onSaved: (plantId: String) -> Unit = {}
+    onSaved: (String) -> Unit,
+    onBack: () -> Unit
+) {
+    var mode by remember { mutableStateOf("photo") }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        Color(0xFFB5E48C),
+                        Color(0xFFD9ED92),
+                        Color(0xFF99D98C)
+                    )
+                )
+            )
+    ) {
+        Scaffold(
+            containerColor = Color.Transparent,
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            topBar = {
+                TopAppBar(
+                    title = { Text("Add Plant") },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        }
+                    }
+                )
+            }
+        ) { inner ->
+            Column(
+                modifier = Modifier
+                    .padding(inner)
+                    .padding(16.dp)
+                    .fillMaxSize()
+            ) {
+
+                // MODE SWITCH
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    FilterChip(
+                        selected = mode == "photo",
+                        onClick = { mode = "photo" },
+                        label = { Text("Identify from Photo") }
+                    )
+                    FilterChip(
+                        selected = mode == "manual",
+                        onClick = { mode = "manual" },
+                        label = { Text("Add Manually") }
+                    )
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                when (mode) {
+                    "photo" -> AddPlantPhotoMode(
+                        currentUserId = currentUserId,
+                        apiKey = apiKey,
+                        snackbarHostState = snackbarHostState,
+                        onSaved = onSaved
+                    )
+
+                    "manual" -> AddPlantManualMode(
+                        currentUserId = currentUserId,
+                        snackbarHostState = snackbarHostState,
+                        onSaved = onSaved
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ========================================================= //
+//  MANUAL MODE                                              //
+// ========================================================= //
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddPlantManualMode(
+    currentUserId: String,
+    snackbarHostState: SnackbarHostState,
+    onSaved: (String) -> Unit
+) {
+    val repo = remember { PlantRepository() }
+    val scope = rememberCoroutineScope()
+
+    var name by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
+    var water by remember { mutableStateOf(5) }
+    var fertilizer by remember { mutableStateOf(30) }
+    var sunlight by remember { mutableStateOf("Bright indirect") }
+    var saving by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    val avatarConfig = remember { AvatarGenerator.generateRandomAvatar() }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)),
+        shape = RoundedCornerShape(18.dp),
+        elevation = CardDefaults.cardElevation(6.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+
+            PlantAvatar(
+                avatarConfig = avatarConfig,
+                health = "healthy",
+                size = 130.dp
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Plant Name") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = notes,
+                onValueChange = { notes = it },
+                label = { Text("Notes") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 3,
+                maxLines = 5
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            Text("Water every $water days")
+            Slider(
+                value = water.toFloat(),
+                onValueChange = { water = it.toInt() },
+                valueRange = 1f..14f
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            Text("Fertilize every $fertilizer days")
+            Slider(
+                value = fertilizer.toFloat(),
+                onValueChange = { fertilizer = it.toInt() },
+                valueRange = 7f..60f
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            Text("Sunlight Requirement")
+            DropdownMenuBox(
+                options = listOf("Low", "Medium", "Bright indirect", "Direct sun"),
+                selected = sunlight,
+                onSelected = { sunlight = it }
+            )
+
+            Spacer(Modifier.height(20.dp))
+
+            Button(
+                onClick = {
+                    saving = true
+                    error = null
+
+                    scope.launch {
+                        val plant = PlantProfile(
+                            userId = currentUserId,
+                            commonName = name,
+                            scientificName = "",
+                            confidence = 1.0,
+                            notes = notes,
+                            careInfo = PlantCareInfo(
+                                family = "",
+                                genus = "",
+                                wateringMinDays = water,
+                                wateringMaxDays = water,
+                                sunlight = listOf(sunlight)
+                            ),
+                            avatarConfig = avatarConfig,
+                            wateringFrequency = water,
+                            fertilizerFrequency = fertilizer,
+                            sunlight = sunlight,
+                            careProfile = CareProfile(
+                                wateringFrequency = water,
+                                sunlight = sunlight,
+                                fertilizerFrequency = fertilizer
+                            )
+                        )
+
+                        repo.addPlant(plant)
+                            .onSuccess { id ->
+                                saving = false
+
+                                // 🔔 Snackbar notification
+                                snackbarHostState.showSnackbar(
+                                    message = "🌱 Plant added!",
+                                    withDismissAction = true
+                                )
+
+                                // Navigate back (library)
+                                onSaved(id)
+                            }
+                            .onFailure { e ->
+                                saving = false
+                                error = e.message
+                            }
+                    }
+                },
+                enabled = name.isNotBlank(),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (saving) "Saving..." else "Save Plant")
+            }
+
+            error?.let {
+                Spacer(Modifier.height(12.dp))
+                Text(it, color = MaterialTheme.colorScheme.error)
+            }
+        }
+    }
+}
+
+// ========================================================= //
+//  PHOTO MODE — (your existing code, updated & cleaned)      //
+// ========================================================= //
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddPlantPhotoMode(
+    currentUserId: String,
+    apiKey: String,
+    snackbarHostState: SnackbarHostState,
+    onSaved: (String) -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -37,38 +291,33 @@ fun AddPlantCaptureScreen(
     var error by remember { mutableStateOf<String?>(null) }
     var identifiedPlant by remember { mutableStateOf<Suggestion?>(null) }
     var savedPlantId by remember { mutableStateOf<String?>(null) }
-
     var customName by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     var showSaveButton by remember { mutableStateOf(false) }
-
-    // --- Camera permission state ---
     var hasCameraPermission by remember {
         mutableStateOf(
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.CAMERA
-            ) == PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
+                    == PackageManager.PERMISSION_GRANTED
         )
     }
 
-    // --- Launchers ---
+    var tempUri by remember { mutableStateOf<Uri?>(null) }
+    var shouldLaunchCamera by remember { mutableStateOf(false) }
 
-    // Gallery
     val galleryLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+        ActivityResultContracts.GetContent()
     ) { uri ->
-        uri?.let { selected ->
-            imageUri = selected
+        if (uri != null) {
+            imageUri = uri
             scope.launch {
                 handlePlantIdentification(
                     context = context,
-                    uri = selected,
+                    uri = uri,
                     apiKey = apiKey,
                     setLoading = { isLoading = it },
-                    setSuggestion = { suggestion ->
-                        identifiedPlant = suggestion
-                        customName = suggestion?.plant_name ?: "Unknown Plant"
+                    setSuggestion = {
+                        identifiedPlant = it
+                        customName = it?.plant_name ?: "Unknown Plant"
                         showSaveButton = true
                     },
                     setError = { error = it }
@@ -77,35 +326,21 @@ fun AddPlantCaptureScreen(
         }
     }
 
-    // Temp file for camera capture (matches file_paths: files-path path="plants/")
-    val tempPhotoFile = remember(context) {
-        val dir = File(context.filesDir, "plants").apply { mkdirs() }
-        File(dir, "photo_${System.currentTimeMillis()}.jpg").apply { createNewFile() }
-    }
-
-    val tempUri = remember(tempPhotoFile) {
-        FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.fileprovider", // ensure manifest uses .fileprovider authority
-            tempPhotoFile
-        )
-    }
-
-    // Camera
     val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicture()
+        ActivityResultContracts.TakePicture()
     ) { success ->
-        if (success) {
+        shouldLaunchCamera = false
+        if (success && tempUri != null) {
             imageUri = tempUri
             scope.launch {
                 handlePlantIdentification(
                     context = context,
-                    uri = tempUri,
+                    uri = tempUri!!,
                     apiKey = apiKey,
                     setLoading = { isLoading = it },
-                    setSuggestion = { suggestion ->
-                        identifiedPlant = suggestion
-                        customName = suggestion?.plant_name ?: "Unknown Plant"
+                    setSuggestion = {
+                        identifiedPlant = it
+                        customName = it?.plant_name ?: "Unknown Plant"
                         showSaveButton = true
                     },
                     setError = { error = it }
@@ -114,34 +349,39 @@ fun AddPlantCaptureScreen(
         }
     }
 
-    // Permission request launcher
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
+        ActivityResultContracts.RequestPermission()
     ) { granted ->
         hasCameraPermission = granted
-        if (granted) {
-            cameraLauncher.launch(tempUri)
-        } else {
-            error = "Camera permission is required to take a photo."
+        if (granted) shouldLaunchCamera = true
+        else error = "Camera permission required."
+    }
+
+    // Auto-launch camera when permission is granted
+    LaunchedEffect(shouldLaunchCamera, hasCameraPermission) {
+        if (shouldLaunchCamera && hasCameraPermission) {
+            val tempPhoto = File(context.cacheDir, "photo_${System.currentTimeMillis()}.jpg")
+            tempPhoto.createNewFile()
+            val uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                tempPhoto
+            )
+            tempUri = uri
+            cameraLauncher.launch(uri)
         }
     }
 
-    // --- UI ---
+    Column(modifier = Modifier.fillMaxSize()) {
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("Add a new plant", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(24.dp))
-
-        Box(
+        // Photo preview card
+        Card(
             modifier = Modifier
-                .height(220.dp)
-                .fillMaxWidth(),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth()
+                .height(220.dp),
+            colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)),
+            shape = RoundedCornerShape(18.dp),
+            elevation = CardDefaults.cardElevation(6.dp)
         ) {
             if (imageUri != null) {
                 Image(
@@ -151,19 +391,18 @@ fun AddPlantCaptureScreen(
                     contentScale = ContentScale.Crop
                 )
             } else {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(
+                    Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     TextButton(onClick = { galleryLauncher.launch("image/*") }) {
                         Text("Pick from Gallery")
                     }
-                    TextButton(
-                        onClick = {
-                            if (hasCameraPermission) {
-                                cameraLauncher.launch(tempUri)
-                            } else {
-                                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                            }
-                        }
-                    ) {
+                    TextButton(onClick = {
+                        if (hasCameraPermission) shouldLaunchCamera = true
+                        else cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                    }) {
                         Text("Take Photo")
                     }
                 }
@@ -173,132 +412,11 @@ fun AddPlantCaptureScreen(
         Spacer(Modifier.height(16.dp))
 
         when {
-            isLoading -> {
-                CircularProgressIndicator()
-            }
-
-            identifiedPlant != null && !showSaveButton -> {
-                // brief loading state while we prep the UI
-                CircularProgressIndicator()
-            }
-
-            identifiedPlant != null && showSaveButton -> {
-                val suggestion = identifiedPlant!!
-
-                Text(
-                    "🌿 Identified!",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(Modifier.height(8.dp))
-
-                Text(
-                    suggestion.plant_details?.scientific_name ?: "Unknown Species",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    "Confidence: ${((suggestion.probability ?: 0.0) * 100).toInt()}%",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                suggestion.plant_details?.let { details ->
-                    Spacer(Modifier.height(8.dp))
-
-                    details.watering?.let { watering ->
-                        Text(
-                            "💧 Water every ${watering.min}-${watering.max} days",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
-                    if (!details.common_names.isNullOrEmpty()) {
-                        Text(
-                            "Also known as: ${details.common_names.take(3).joinToString(", ")}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(16.dp))
-                HorizontalDivider()
-                Spacer(Modifier.height(16.dp))
-
-                OutlinedTextField(
-                    value = customName,
-                    onValueChange = { customName = it },
-                    label = { Text("Plant Name") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Spacer(Modifier.height(12.dp))
-
-                OutlinedTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    label = { Text("Notes (optional)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 3,
-                    maxLines = 5
-                )
-
-                Spacer(Modifier.height(16.dp))
-
-                if (savedPlantId != null) {
-                    Text(
-                        "Saved to your collection ✅",
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(Modifier.height(16.dp))
-
-                    Button(
-                        onClick = { onSaved(savedPlantId!!) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("View My Plants")
-                    }
-                } else {
-                    Button(
-                        onClick = {
-                            val currentImage = imageUri
-                            if (currentImage != null) {
-                                scope.launch {
-                                    handlePlantSaving(
-                                        context = context,
-                                        uri = currentImage,
-                                        plantName = customName.trim(),
-                                        scientificName = suggestion.plant_details?.scientific_name
-                                            ?: "Unknown Species",
-                                        confidence = suggestion.probability ?: 0.0,
-                                        notes = notes.trim(),
-                                        userId = currentUserId,
-                                        plantRepository = plantRepository,
-                                        suggestion = suggestion,
-                                        onSaved = { savedId -> savedPlantId = savedId },
-                                        setLoading = { isLoading = it },
-                                        setError = { error = it }
-                                    )
-                                }
-                            } else {
-                                error = "No image selected."
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = customName.isNotBlank()
-                    ) {
-                        Text("Save Plant")
-                    }
-                }
-            }
+            isLoading -> CircularProgressIndicator()
 
             error != null -> {
                 Text(error!!, color = MaterialTheme.colorScheme.error)
                 Spacer(Modifier.height(16.dp))
-
                 Button(
                     onClick = {
                         imageUri = null
@@ -309,13 +427,97 @@ fun AddPlantCaptureScreen(
                         notes = ""
                     },
                     modifier = Modifier.fillMaxWidth()
+                ) { Text("Try Again") }
+            }
+
+            identifiedPlant != null && showSaveButton -> {
+                val suggestion = identifiedPlant!!
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)),
+                    shape = RoundedCornerShape(18.dp),
+                    elevation = CardDefaults.cardElevation(6.dp)
                 ) {
-                    Text("Try Again")
+                    Column(Modifier.padding(16.dp)) {
+
+                        Text("🌿 Identified!", style = MaterialTheme.typography.titleMedium)
+                        Spacer(Modifier.height(8.dp))
+
+                        Text(
+                            suggestion.plant_details?.scientific_name ?: "Unknown species",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Text(
+                            "Confidence: ${((suggestion.probability ?: 0.0) * 100).toInt()}%",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+
+                        Spacer(Modifier.height(16.dp))
+
+                        OutlinedTextField(
+                            value = customName,
+                            onValueChange = { customName = it },
+                            label = { Text("Plant Name") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Spacer(Modifier.height(12.dp))
+
+                        OutlinedTextField(
+                            value = notes,
+                            onValueChange = { notes = it },
+                            label = { Text("Notes") },
+                            minLines = 3,
+                            maxLines = 5,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Spacer(Modifier.height(16.dp))
+
+                        if (savedPlantId != null) {
+                            Text("Saved! 🌱")
+                        } else {
+                            Button(
+                                onClick = {
+                                    scope.launch {
+                                        handlePlantSaving(
+                                            context = context,
+                                            uri = imageUri!!,
+                                            plantName = customName.trim(),
+                                            scientificName = suggestion.plant_details?.scientific_name
+                                                ?: "Unknown species",
+                                            confidence = suggestion.probability ?: 0.0,
+                                            notes = notes.trim(),
+                                            userId = currentUserId,
+                                            plantRepository = plantRepository,
+                                            suggestion = suggestion,
+                                            onSaved = { savedPlantId = it },
+                                            setLoading = { isLoading = it },
+                                            setError = { error = it }
+                                        )
+                                        snackbarHostState.showSnackbar("🌱 Plant added!")
+                                        onSaved(savedPlantId!!)
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = customName.isNotBlank()
+                            ) {
+                                Text("Save Plant")
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 }
+
+// ========================================================= //
+// IDENTIFICATION HELPERS                                    //
+// ========================================================= //
 
 private suspend fun handlePlantIdentification(
     context: Context,
@@ -333,15 +535,13 @@ private suspend fun handlePlantIdentification(
         val suggestion = response?.suggestions?.firstOrNull()
 
         if (suggestion == null) {
-            setError("Could not identify plant. Try a clearer photo or check your API key.")
+            setError("Could not identify plant.")
             setSuggestion(null)
         } else {
             setSuggestion(suggestion)
         }
     } catch (e: Exception) {
-        e.printStackTrace()
-        setError("An error occurred: ${e.message}")
-        setSuggestion(null)
+        setError("Error: ${e.message}")
     } finally {
         setLoading(false)
     }
@@ -366,19 +566,14 @@ private suspend fun handlePlantSaving(
         setError(null)
 
         var downloadUrl = ""
+
         try {
-            val storageRef = com.google.firebase.storage.FirebaseStorage
-                .getInstance()
-                .reference
-                .child("plants/${java.util.UUID.randomUUID()}.jpg")
+            val storageRef = com.google.firebase.storage.FirebaseStorage.getInstance()
+                .reference.child("plants/${java.util.UUID.randomUUID()}.jpg")
 
             storageRef.putFile(uri).await()
             downloadUrl = storageRef.downloadUrl.await()?.toString() ?: ""
-        } catch (storageException: Exception) {
-            android.util.Log.w(
-                "AddPlant",
-                "Storage upload failed, saving plant without remote photo: ${storageException.message}"
-            )
+        } catch (_: Exception) {
             downloadUrl = uri.toString()
         }
 
@@ -390,11 +585,11 @@ private suspend fun handlePlantSaving(
             droughtTolerant = PlantCareDefaults.isDroughtTolerant(suggestion.plant_details?.taxonomy?.family)
         )
 
-        val wateringFrequency = careInfo.wateringMaxDays
+        val watering = careInfo.wateringMaxDays
             ?: PlantCareDefaults.getWateringFrequencyDays(careInfo.family, careInfo.genus)
 
         val sunlightReq = PlantCareDefaults.getSunlightRequirement(careInfo.family, careInfo.genus)
-        val fertilizerFreq = PlantCareDefaults.getFertilizerFrequency(careInfo.family)
+        val fertFreq = PlantCareDefaults.getFertilizerFrequency(careInfo.family)
 
         val avatarConfig = AvatarGenerator.generateAvatarForPlant(
             family = careInfo.family,
@@ -412,26 +607,65 @@ private suspend fun handlePlantSaving(
             photoUrl = downloadUrl,
             careInfo = careInfo,
             avatarConfig = avatarConfig,
-            wateringFrequency = wateringFrequency,
+            wateringFrequency = watering,
             sunlight = sunlightReq,
-            fertilizerFrequency = fertilizerFreq,
+            fertilizerFrequency = fertFreq,
             careProfile = CareProfile(
-                wateringFrequency = wateringFrequency,
+                wateringFrequency = watering,
                 sunlight = sunlightReq,
-                fertilizerFrequency = fertilizerFreq
+                fertilizerFrequency = fertFreq
             )
         )
 
-        val result = plantRepository.addPlant(newPlant)
-        result.onSuccess { id ->
+        plantRepository.addPlant(newPlant).onSuccess { id ->
             onSaved(id)
         }.onFailure { e ->
-            setError(e.message ?: "Error saving to Firebase")
+            setError(e.message)
         }
+
     } catch (e: Exception) {
-        e.printStackTrace()
-        setError("An error occurred: ${e.message}")
+        setError("Error: ${e.message}")
     } finally {
         setLoading(false)
+    }
+}
+
+// ========================================================= //
+// SIMPLE DROPDOWN MENU COMPONENT                            //
+// ========================================================= //
+
+@Composable
+fun DropdownMenuBox(
+    options: List<String>,
+    selected: String,
+    onSelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box {
+        OutlinedTextField(
+            value = selected,
+            onValueChange = {},
+            readOnly = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = true },
+            label = { Text("Select") }
+        )
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            options.forEach { item ->
+                DropdownMenuItem(
+                    text = { Text(item) },
+                    onClick = {
+                        onSelected(item)
+                        expanded = false
+                    }
+                )
+            }
+        }
     }
 }

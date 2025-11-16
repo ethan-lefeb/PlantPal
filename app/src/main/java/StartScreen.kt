@@ -1,4 +1,4 @@
-package com.example.plantpal
+package com.example.plantpal.screens.start
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -27,7 +27,6 @@ fun StartScreenContent(
     onLoginClick: () -> Unit = {},
     onSignupClick: () -> Unit = {}
 ) {
-    // 🌿 Gradient background (same as HomeScreen)
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -43,12 +42,10 @@ fun StartScreenContent(
             .padding(16.dp)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize(),
+            modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 🌿 Title
             Text(
                 text = "Welcome to PlantPal!",
                 style = MaterialTheme.typography.headlineSmall.copy(
@@ -59,7 +56,6 @@ fun StartScreenContent(
                 modifier = Modifier.padding(bottom = 24.dp)
             )
 
-            // 🌿 Login Button
             Button(
                 onClick = onLoginClick,
                 modifier = Modifier
@@ -73,7 +69,6 @@ fun StartScreenContent(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 🌿 Signup Button
             Button(
                 onClick = onSignupClick,
                 modifier = Modifier
@@ -87,7 +82,6 @@ fun StartScreenContent(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // 🌿 Inspirational quote for balance
             Text(
                 text = "“Every plant you nurture helps you grow too.”",
                 style = MaterialTheme.typography.bodySmall.copy(

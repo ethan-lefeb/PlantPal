@@ -3,36 +3,34 @@ package com.example.plantpal
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.*
+import androidx.navigation.navArgument
+import com.example.plantpal.screens.profile.ProfileScreen
+import com.example.plantpal.screens.detail.PlantDetailScreenWrapper
 
-data class Tab(
-    val route: String,
-    val label: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector
-)
+
+data class Tab(val route: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlantPalApp() {
+fun PlantPalApp(
+    currentUserId: String,
+    onSignOut: () -> Unit
+) {
     val navController = rememberNavController()
+
     val tabs = listOf(
         Tab("home", "Home", Icons.Filled.Home),
         Tab("library", "Library", Icons.Filled.Star),
@@ -40,13 +38,12 @@ fun PlantPalApp() {
         Tab("profile", "Profile", Icons.Filled.AccountCircle),
     )
 
-    // Background gradient
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    listOf(
+                    colors = listOf(
                         Color(0xFFB5E48C),
                         Color(0xFFD9ED92),
                         Color(0xFF99D98C)
@@ -56,93 +53,135 @@ fun PlantPalApp() {
     ) {
         Scaffold(
             containerColor = Color.Transparent,
+            contentColor = MaterialTheme.colorScheme.onBackground,
             bottomBar = {
-                NavigationBar(
-                    containerColor = Color(0xFFE9F5DB),
-                    tonalElevation = 8.dp
-                ) {
-                    val backStackEntry by navController.currentBackStackEntryAsState()
-                    val current = backStackEntry?.destination?.route
+                val backStackEntry by navController.currentBackStackEntryAsState()
+                val currentRoute = backStackEntry?.destination?.route
 
-                    tabs.forEach { tab ->
-                        NavigationBarItem(
-                            selected = current == tab.route,
-                            onClick = {
-                                navController.navigate(tab.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
+                if (currentRoute != null &&
+                    !currentRoute.startsWith("plantDetail/") &&
+                    !currentRoute.startsWith("addPlant/") &&
+                    currentRoute != "developerSettings" &&
+                    currentRoute != "avatarCustomization") {
+
+                    NavigationBar(
+                        containerColor = Color(0xFF52796F),
+                        contentColor = Color.White
+                    ) {
+                        tabs.forEach { tab ->
+                            NavigationBarItem(
+                                selected = currentRoute == tab.route,
+                                onClick = {
+                                    navController.navigate(tab.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
-                                    launchSingleTop = true
-                                    restoreState = true
+                                },
+                                icon = { Icon(tab.icon, contentDescription = tab.label, tint = Color.White) },
+                                label = {
+                                    Text(
+                                        tab.label,
+                                        color = Color.White,
+                                        style = MaterialTheme.typography.labelMedium
+                                    )
                                 }
-                            },
-                            icon = {
-                                Icon(
-                                    tab.icon,
-                                    contentDescription = tab.label,
-                                    tint = if (current == tab.route)
-                                        Color(0xFF2F5233)
-                                    else
-                                        Color(0xFF52796F)
-                                )
-                            },
-                            label = {
-                                Text(
-                                    tab.label,
-                                    color = if (current == tab.route)
-                                        Color(0xFF2F5233)
-                                    else
-                                        Color(0xFF52796F),
-                                    fontSize = 13.sp
-                                )
-                            }
-                        )
+                            )
+                        }
                     }
                 }
             },
             floatingActionButton = {
                 val backStackEntry by navController.currentBackStackEntryAsState()
                 val current = backStackEntry?.destination?.route
-
-                // Only show the + button on the Home screen
-                if (current == "home") {
+                if (current == "library") {
                     FloatingActionButton(
-                        onClick = { navController.navigate("addPlant") },
-                        containerColor = Color(0xFFFF6F61),
-                        contentColor = Color.White
+                        onClick = { navController.navigate("addPlant/$currentUserId") },
+                        containerColor = Color(0xFF52796F),
+                        contentColor = Color.White,
+                        shape = MaterialTheme.shapes.large
                     ) {
                         Icon(Icons.Default.Add, contentDescription = "Add Plant")
                     }
                 }
             }
         ) { innerPadding ->
-            // Ensure screens respect the inner padding so FAB and nav bar are visible
             NavHost(
                 navController = navController,
                 startDestination = "home",
                 modifier = Modifier
                     .padding(innerPadding)
-                    .fillMaxSize()
+                    .padding(top = 8.dp)
             ) {
+
                 composable("home") {
-                    // Routes to real Home Screen
-                    HomeScreen(navController)
-                }
-                composable("library") {
-                    CenterText("Explore the Plant Library 📚", title = "Library")
-                }
-                composable("alerts") {
-                    CenterText("Stay on top of watering & care reminders 🔔", title = "Alerts")
-                }
-                composable("profile") {
-                    CenterText("Manage your PlantPal profile 🌿", title = "Profile")
-                }
-                composable("addPlant") {
-                    AddPlantCaptureScreen(
-                        onSaved = { uri ->
-                            navController.popBackStack()
+                    DashboardScreen(
+                        onOpenLibrary = { navController.navigate("library") },
+                        onAddPlant = { navController.navigate("addPlant/$currentUserId") },
+                        onOpenPlant = { plantId ->
+                            navController.navigate("plantDetail/$currentUserId/$plantId")
                         }
                     )
+                }
+
+                composable("library") {
+                    val plantsViewModel: PlantsViewModel = viewModel()
+                    LaunchedEffect(Unit) { plantsViewModel.loadPlants() }
+
+                    PlantsHomeScreen(
+                        viewModel = plantsViewModel,
+                        onPlantClick = { plantId ->
+                            navController.navigate("plantDetail/$currentUserId/$plantId")
+                        }
+                    )
+                }
+
+                composable("alerts") {
+                    AlertsScreen(
+                        onOpenPlant = { plantId ->
+                            navController.navigate("plantDetail/$currentUserId/$plantId")
+                        }
+                    )
+                }
+
+                composable("profile") {
+                    ProfileScreen(onSignOut = onSignOut)
+                }
+
+                composable(
+                    route = "addPlant/{userId}",
+                    arguments = listOf(navArgument("userId") { type = NavType.StringType })
+                ) { backStackEntry ->
+                    val userId = backStackEntry.arguments?.getString("userId") ?: return@composable
+                    AddPlantCaptureScreen(
+                        apiKey = PlantIdSecret.API_KEY,
+                        currentUserId = userId,
+                        onSaved = {
+                            navController.popBackStack(
+                                "library",
+                                inclusive = false
+                            )
+                        },
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+
+                composable(
+                    route = "plantDetail/{userId}/{plantId}",
+                    arguments = listOf(
+                        navArgument("userId") { type = NavType.StringType },
+                        navArgument("plantId") { type = NavType.StringType }
+                    )
+                ) { backStackEntry ->
+                    val plantId = backStackEntry.arguments?.getString("plantId")
+                    if (plantId != null) {
+                        PlantDetailScreenWrapper(
+                            plantId = plantId,
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
                 }
             }
         }
@@ -150,36 +189,15 @@ fun PlantPalApp() {
 }
 
 @Composable
-private fun CenterText(text: String, title: String? = null) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        if (title != null) {
-            Text(
-                text = title,
-                fontWeight = FontWeight.Bold,
-                fontSize = 24.sp,
-                color = Color(0xFF2F5233),
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
-        }
+fun CenterText(text: String) {
+    Box(Modifier.fillMaxSize()) {
         Text(
             text = text,
+            modifier = Modifier.align(Alignment.Center),
             textAlign = TextAlign.Center,
-            color = Color(0xFF52796F),
-            style = MaterialTheme.typography.bodyLarge
+            style = MaterialTheme.typography.bodyLarge.copy(
+                color = Color(0xFF2F5233)
+            )
         )
-    }
-}
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun PlantPalAppPreview() {
-    MaterialTheme {
-        PlantPalApp()
     }
 }
