@@ -1,9 +1,13 @@
 package com.example.plantpal.screens.detail
 
 import android.annotation.SuppressLint
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -11,19 +15,23 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import kotlinx.coroutines.flow.collect
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
-import com.example.plantpal.PlantProfile
-import com.example.plantpal.PlantRepository
+import com.example.plantpal.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -106,7 +114,7 @@ fun PlantDetailScreenWrapper(
 }
 
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun PlantDetailScreen(
@@ -118,6 +126,8 @@ fun PlantDetailScreen(
 
     var showEditDialog by remember { mutableStateOf(false) }
     var showHealthDialog by remember { mutableStateOf(false) }
+    var showAvatarCustomization by remember { mutableStateOf(false) }
+    var currentPlantForCustomization by remember { mutableStateOf<PlantProfile?>(null) }
 
 
     Box(
@@ -155,11 +165,34 @@ fun PlantDetailScreen(
                     viewModel.loadPlant()
                 }
                 uiState.plant != null -> {
+                    var currentPlant by remember(uiState.plant!!.plantId) { 
+                        mutableStateOf(uiState.plant!!) 
+                    }
+
+                    LaunchedEffect(uiState.plant, uiState.actionInProgress) {
+                        if (uiState.actionInProgress == null) {
+                            currentPlant = uiState.plant!!
+                        }
+                    }
+
+                    currentPlantForCustomization = currentPlant
+                    
                     PlantDetailContent(
-                        plant = uiState.plant!!,
-                        onWaterPlant = viewModel::waterPlant,
-                        onFertilizePlant = viewModel::fertilizePlant,
+                        plant = currentPlant,
+                        onWaterPlant = {
+                            currentPlant = currentPlant.copy(
+                                lastWatered = System.currentTimeMillis()
+                            )
+                            viewModel.waterPlant()
+                        },
+                        onFertilizePlant = {
+                            currentPlant = currentPlant.copy(
+                                lastFertilized = System.currentTimeMillis()
+                            )
+                            viewModel.fertilizePlant()
+                        },
                         onUpdateHealth = { showHealthDialog = true },
+                        onCustomizeAvatar = { showAvatarCustomization = true },
                         actionInProgress = uiState.actionInProgress,
                         modifier = Modifier.padding(padding)
                     )
@@ -186,6 +219,20 @@ fun PlantDetailScreen(
                     viewModel.updateHealthStatus(it)
                     showHealthDialog = false
                 }
+            )
+        }
+
+        if (showAvatarCustomization && currentPlantForCustomization != null) {
+            AvatarCustomizationScreen(
+                currentConfig = currentPlantForCustomization!!.avatarConfig,
+                plantName = currentPlantForCustomization!!.commonName,
+                plant = currentPlantForCustomization,
+                onSave = { newConfig ->
+                    val updatedPlant = currentPlantForCustomization!!.copy(avatarConfig = newConfig)
+                    viewModel.updatePlant(updatedPlant)
+                    showAvatarCustomization = false
+                },
+                onBack = { showAvatarCustomization = false }
             )
         }
     }
@@ -220,73 +267,258 @@ private fun ErrorState(
 }
 
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PlantDetailContent(
     plant: PlantProfile,
     onWaterPlant: () -> Unit,
     onFertilizePlant: () -> Unit,
     onUpdateHealth: () -> Unit,
+    onCustomizeAvatar: () -> Unit = {},
     actionInProgress: String?,
     modifier: Modifier = Modifier
 ) {
+    val pagerState = rememberPagerState(
+        pageCount = { 2 },
+        initialPage = 0
+    )
+
+    var avatarCenterX by remember { mutableStateOf(0f) }
+    var avatarCenterY by remember { mutableStateOf(0f) }
+
+    val animationController = rememberAvatarAnimationController(
+        health = plant.health,
+        daysSinceWatering = ((System.currentTimeMillis() - plant.lastWatered) / (1000 * 60 * 60 * 24)).toInt()
+    )
+    val particleSystem = rememberParticleSystem()
+    val scope = rememberCoroutineScope()
+    val handleWater: () -> Unit = {
+        scope.launch {
+            if (pagerState.currentPage != 0) {
+                pagerState.animateScrollToPage(0)
+                delay(200)
+            }
+            particleSystem.waterEffect(centerX = avatarCenterX, centerY = avatarCenterY)
+            animationController.triggerAnimation(AnimationType.WATERING, intensity = 1.0f)
+            animationController.triggerAnimation(AnimationType.HAPPY, intensity = 1.0f)
+            delay(2000)
+            onWaterPlant()
+        }
+        Unit
+    }
+    
+    val handleFertilize: () -> Unit = {
+        scope.launch {
+            if (pagerState.currentPage != 0) {
+                pagerState.animateScrollToPage(0)
+                delay(200)
+            }
+
+            particleSystem.fertilizeEffect(centerX = avatarCenterX, centerY = avatarCenterY)
+            animationController.triggerAnimation(AnimationType.FERTILIZING, intensity = 1.0f)
+            animationController.triggerAnimation(AnimationType.HAPPY, intensity = 1.0f)
+            delay(2000)
+            onFertilizePlant()
+        }
+        Unit
+    }
+    
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp)
+        modifier = modifier.fillMaxSize()
     ) {
-        PlantImage(plant)
-
-        Spacer(Modifier.height(24.dp))
-
-        Text(plant.commonName, style = MaterialTheme.typography.headlineMedium)
-        Text(
-            plant.scientificName,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+        PlantImageWithAvatar(
+            plant = plant,
+            pagerState = pagerState,
+            animationController = animationController,
+            particleSystem = particleSystem,
+            onAvatarPositioned = { x, y ->
+                avatarCenterX = x
+                avatarCenterY = y
+            }
         )
 
-        if (plant.confidence > 0.0) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
+        ) {
+            Spacer(Modifier.height(16.dp))
+
+            OutlinedButton(
+                onClick = onCustomizeAvatar,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            ) {
+                Text("🎨 Customize Avatar")
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            Text(plant.commonName, style = MaterialTheme.typography.headlineMedium)
             Text(
-                "Confidence: ${(plant.confidence * 100).toInt()}%",
-                style = MaterialTheme.typography.bodyMedium,
+                plant.scientificName,
+                style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
+            if (plant.confidence > 0.0) {
+                Text(
+                    "Confidence: ${(plant.confidence * 100).toInt()}%",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            HealthStatusSection(plant, onUpdateHealth)
+
+            Spacer(Modifier.height(16.dp))
+
+            CareActionsSection(
+                actionInProgress = actionInProgress,
+                onWaterPlant = handleWater,
+                onFertilizePlant = handleFertilize
+            )
         }
-
-        Spacer(Modifier.height(16.dp))
-
-        HealthStatusSection(plant, onUpdateHealth)
-
-        Spacer(Modifier.height(16.dp))
-
-        CareActionsSection(
-            actionInProgress = actionInProgress,
-            onWaterPlant = onWaterPlant,
-            onFertilizePlant = onFertilizePlant
-        )
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun PlantImage(plant: PlantProfile) {
+private fun PlantImageWithAvatar(
+    plant: PlantProfile,
+    pagerState: PagerState,
+    animationController: AvatarAnimationController,
+    particleSystem: ParticleSystem,
+    onAvatarPositioned: (Float, Float) -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(250.dp)
+            .height(280.dp)
+            .padding(horizontal = 16.dp)
+            .padding(top = 16.dp)
     ) {
-        if (plant.photoUrl.isNotEmpty()) {
-            Image(
-                painter = rememberAsyncImagePainter(plant.photoUrl),
-                contentDescription = plant.commonName,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
-            )
-        } else {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) { Text("🌿", style = MaterialTheme.typography.displayLarge) }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .onSizeChanged { size ->
+                    onAvatarPositioned(size.width / 2f, size.height / 2f)
+                }
+        ) {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize()
+            ) { page ->
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    when (page) {
+                        0 -> {
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                PlantAvatar(
+                                    avatarConfig = plant.avatarConfig,
+                                    health = plant.health,
+                                    size = 200.dp,
+                                    animated = true,
+                                    animationController = animationController,
+                                    modifier = Modifier.fillMaxSize(0.8f).align(Alignment.Center)
+                                )
+                                ParticleEffect(
+                                    particleSystem = particleSystem,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                        }
+                        1 -> {
+                            if (plant.photoUrl.isNotEmpty()) {
+                                Image(
+                                    painter = rememberAsyncImagePainter(plant.photoUrl),
+                                    contentDescription = plant.commonName,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Text(
+                                    "No photo available",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                repeat(2) { index ->
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .padding(2.dp)
+                    ) {
+                        Surface(
+                            modifier = Modifier.fillMaxSize(),
+                            shape = MaterialTheme.shapes.small,
+                            color = if (pagerState.currentPage == index)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                        ) {}
+                    }
+                }
+            }
+
+            Row(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (pagerState.currentPage == 0) {
+                    Text(
+                        text = "Avatar",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    if (plant.photoUrl.isNotEmpty()) {
+                        Text(
+                            text = "◀",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                        Text(
+                            text = "Swipe",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                } else if (pagerState.currentPage == 1 && plant.photoUrl.isNotEmpty()) {
+                    Text(
+                        text = "Swipe",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                    Text(
+                        text = "▶",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                    Text(
+                        text = "Photo",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
         }
     }
 }

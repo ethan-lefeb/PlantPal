@@ -89,15 +89,15 @@ fun PlantCareDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp)
         ) {
             val pagerState = rememberPagerState(pageCount = { 2 })
             
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(280.dp),
+                    .height(280.dp)
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 16.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
                 Box(
@@ -118,22 +118,6 @@ fun PlantCareDetailScreen(
                         ) {
                             when (page) {
                                 0 -> {
-                                    Box(modifier = Modifier.fillMaxSize()) {
-                                        PlantAvatar(
-                                            avatarConfig = currentPlant.avatarConfig,
-                                            health = currentPlant.health,
-                                            modifier = Modifier.fillMaxSize(0.8f).align(Alignment.Center),
-                                            size = 200.dp,
-                                            animated = true,
-                                            animationController = animationController
-                                        )
-                                        ParticleEffect(
-                                            particleSystem = particleSystem,
-                                            modifier = Modifier.fillMaxSize()
-                                        )
-                                    }
-                                }
-                                1 -> {
                                     if (currentPlant.photoUrl.isNotEmpty()) {
                                         Image(
                                             painter = rememberAsyncImagePainter(currentPlant.photoUrl),
@@ -141,6 +125,39 @@ fun PlantCareDetailScreen(
                                             modifier = Modifier.fillMaxSize(),
                                             contentScale = ContentScale.Crop
                                         )
+                                    } else {
+                                        Box(modifier = Modifier.fillMaxSize()) {
+                                            PlantAvatar(
+                                                avatarConfig = currentPlant.avatarConfig,
+                                                health = currentPlant.health,
+                                                modifier = Modifier.fillMaxSize(0.8f).align(Alignment.Center),
+                                                size = 200.dp,
+                                                animated = true,
+                                                animationController = animationController
+                                            )
+                                            ParticleEffect(
+                                                particleSystem = particleSystem,
+                                                modifier = Modifier.fillMaxSize()
+                                            )
+                                        }
+                                    }
+                                }
+                                1 -> {
+                                    if (currentPlant.photoUrl.isNotEmpty()) {
+                                        Box(modifier = Modifier.fillMaxSize()) {
+                                            PlantAvatar(
+                                                avatarConfig = currentPlant.avatarConfig,
+                                                health = currentPlant.health,
+                                                modifier = Modifier.fillMaxSize(0.8f).align(Alignment.Center),
+                                                size = 200.dp,
+                                                animated = true,
+                                                animationController = animationController
+                                            )
+                                            ParticleEffect(
+                                                particleSystem = particleSystem,
+                                                modifier = Modifier.fillMaxSize()
+                                            )
+                                        }
                                     } else {
                                         Text(
                                             "No photo available",
@@ -177,24 +194,71 @@ fun PlantCareDetailScreen(
                         }
                     }
 
-                    Text(
-                        text = if (pagerState.currentPage == 0) "Avatar" else "Photo",
+                    Row(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
                             .padding(16.dp),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (pagerState.currentPage == 0 && currentPlant.photoUrl.isNotEmpty()) {
+                            Text(
+                                text = "Photo",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "◀",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                            Text(
+                                text = "Swipe",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                        } else if (pagerState.currentPage == 1 && currentPlant.photoUrl.isNotEmpty()) {
+                            Text(
+                                text = "Swipe",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                            Text(
+                                text = "▶",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                            Text(
+                                text = "Avatar",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        } else {
+                            Text(
+                                text = "Avatar",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
                 }
             }
 
+
             Spacer(Modifier.height(16.dp))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp)
+            ) {
 
             OutlinedButton(
                 onClick = { showAvatarCustomization = true },
                 modifier = Modifier.fillMaxWidth(0.6f)
             ) {
-                Text("🎨 Customize Avatar")
+                Text("ðŸŽ¨ Customize Avatar")
             }
 
             Spacer(Modifier.height(24.dp))
@@ -253,7 +317,7 @@ fun PlantCareDetailScreen(
                             strokeWidth = 2.dp
                         )
                     } else {
-                        Text("💧 Water")
+                        Text("ðŸ’§ Water")
                     }
                 }
 
@@ -283,7 +347,7 @@ fun PlantCareDetailScreen(
                             strokeWidth = 2.dp
                         )
                     } else {
-                        Text("🌿 Fertilize")
+                        Text("ðŸŒ¿ Fertilize")
                     }
                 }
             }
@@ -320,11 +384,12 @@ fun PlantCareDetailScreen(
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text("🔄 Rotate Plant")
+                    Text("ðŸ”„ Rotate Plant")
                 }
             }
 
             Spacer(Modifier.height(32.dp))
+            }
         }
     }
 
@@ -391,14 +456,13 @@ private fun CareSummary(p: PlantProfile) {
         return max(0, days.toInt())
     }
     fun tsLabel(ts: Long): String =
-        if (ts <= 0L) "Ã¢â‚¬â€"
+        if (ts <= 0L) "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"
         else SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date(ts))
 
     val rotationEvery = p.careProfile.rotationFrequency
     val lastRotatedTs = p.careProfile.lastRotated
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // frequencies
         Text(
             "Water every ${p.wateringFrequency} day${if (p.wateringFrequency == 1) "" else "s"}",
             style = MaterialTheme.typography.bodyMedium
@@ -418,9 +482,9 @@ private fun CareSummary(p: PlantProfile) {
             Column(Modifier.padding(12.dp)) {
                 Text("Last care", style = MaterialTheme.typography.titleSmall)
                 Spacer(Modifier.height(6.dp))
-                CareRow("Ã°Å¸â€™Â§ Watered", tsLabel(p.lastWatered), daysSince(p.lastWatered))
-                CareRow("Ã°Å¸Å’Â¿ Fertilized", tsLabel(p.lastFertilized), daysSince(p.lastFertilized))
-                CareRow("Ã°Å¸â€â€ž Rotated", tsLabel(lastRotatedTs), daysSince(lastRotatedTs))
+                CareRow("ÃƒÂ°Ã…Â¸Ã¢â‚¬â„¢Ã‚Â§ Watered", tsLabel(p.lastWatered), daysSince(p.lastWatered))
+                CareRow("ÃƒÂ°Ã…Â¸Ã…â€™Ã‚Â¿ Fertilized", tsLabel(p.lastFertilized), daysSince(p.lastFertilized))
+                CareRow("ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂÃ¢â‚¬Å¾ Rotated", tsLabel(lastRotatedTs), daysSince(lastRotatedTs))
             }
         }
     }
@@ -433,8 +497,8 @@ private fun CareRow(label: String, dateLabel: String, daysSince: Int) {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        val right = if (dateLabel == "Ã¢â‚¬â€") "Ã¢â‚¬â€"
-        else "$dateLabel  Ã‚Â·  ${if (daysSince == 0) "today" else "$daysSince d ago"}"
+        val right = if (dateLabel == "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â") "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"
+        else "$dateLabel  Ãƒâ€šÃ‚Â·  ${if (daysSince == 0) "today" else "$daysSince d ago"}"
         Text(right, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
