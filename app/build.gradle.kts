@@ -19,6 +19,17 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+
+    configurations.all {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "androidx.work") {
+                useVersion("2.9.1")
+                because("Force latest WorkManager to avoid BOM downgrades")
+            }
+        }
+    }
+
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -62,6 +73,8 @@ dependencies {
     implementation("com.squareup.moshi:moshi:1.15.0")
     implementation("com.squareup.moshi:moshi-kotlin:1.15.0")
 
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
+    implementation("androidx.work:work-multiprocess:2.9.1")
 
     implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
     implementation("com.google.firebase:firebase-auth-ktx")
@@ -85,3 +98,4 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 }
+

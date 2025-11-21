@@ -8,89 +8,103 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
-import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.example.plantpal.screens.detail.PlantDetailScreenWrapper
 import com.example.plantpal.ui.theme.PlantPalTheme
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import com.google.firebase.messaging.FirebaseMessaging
-import com.example.plantpal.screens.start.StartScreen
-import com.example.plantpal.LoginScreen
-
-
 
 class MainActivity : ComponentActivity() {
 
     private val requestPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            if (!isGranted) {
+                println("Notification permission not granted.")
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Notification permission
+        // Request permissions for notifications (Android 13+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ActivityCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
+            val permissionCheck = ActivityCompat.checkSelfPermission(
+                this, Manifest.permission.POST_NOTIFICATIONS
+            )
+            if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
                 requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
 
-        // Save FCM token
+        // Save FCM token when available
         FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
-            val uid = AuthRepository.currentUserId()
-            if (uid != null) saveFcmToken(uid, token)
+            val userId = AuthRepository.currentUserId()
+            if (userId != null) {
+                saveFcmTokenToFirestore(userId, token)
+            } else {
+                println("⚠️ Token received but user not logged in yet: $token")
+            }
         }
 
         setContent {
             PlantPalTheme {
-                Scaffold { inner ->
-                    AppNavigation(Modifier.padding(inner))
+                val startDestination = if (AuthRepository.currentUserId() != null) {
+                    "home"
+                } else {
+                    "start"
+                }
+
+                Scaffold { innerPadding ->
+                    AppNavigation(
+                        modifier = Modifier.padding(innerPadding),
+                        startDestination = startDestination
+                    )
                 }
             }
         }
     }
 
-    private fun saveFcmToken(userId: String, token: String) {
-        FirebaseFirestore.getInstance()
-            .collection("users")
-            .document(userId)
-            .update("fcmToken", token)
+    private fun saveFcmTokenToFirestore(userId: String, token: String) {
+        val db = FirebaseFirestore.getInstance()
+        val userRef = db.collection("users").document(userId)
+        userRef
+            .set(mapOf("fcmToken" to token), SetOptions.merge())
+            .addOnSuccessListener {
+                println("✅ Token saved for user: $userId")
+            }
+            .addOnFailureListener { e ->
+                println("⚠️ Failed to save FCM token: ${e.message}")
+            }
     }
 }
 
 @Composable
-fun AppNavigation(modifier: Modifier = Modifier) {
+fun AppNavigation(modifier: Modifier = Modifier, startDestination: String = "start") {
     val navController = rememberNavController()
-    val start = if (AuthRepository.currentUserId() != null) "home" else "start"
+    val currentUserId = AuthRepository.currentUserId()
 
     NavHost(
         navController = navController,
-        startDestination = start,
+        startDestination = startDestination,
         modifier = modifier
     ) {
-
-        composable("start") {
-            StartScreen(navController)
-        }
+        composable("start") { HomeScreen(navController) }
 
         composable("login") {
             LoginScreen(
                 onSuccess = {
-                    navController.navigate("home") {
-                        popUpTo("login") { inclusive = true }
-                    }
+                    navController.navigate("home") { popUpTo("login") { inclusive = true } }
                 },
                 onNavigateToSignup = { navController.navigate("signup") }
             )
@@ -99,24 +113,34 @@ fun AppNavigation(modifier: Modifier = Modifier) {
         composable("signup") {
             AccountCreationScreen(
                 onSuccess = {
-                    navController.navigate("home") {
-                        popUpTo("signup") { inclusive = true }
-                    }
+                    navController.navigate("home") { popUpTo("signup") { inclusive = true } }
                 },
                 onNavigateToLogin = { navController.navigate("login") }
             )
         }
 
         composable("home") {
-            val userId = AuthRepository.currentUserId() ?: "TEST_USER_123"
-            PlantPalApp(
-                currentUserId = userId,
-                onSignOut = {
-                    AuthRepository.signOut()
-                    navController.navigate("login") {
-                        popUpTo("home") { inclusive = true }
+            if (currentUserId == null) {
+                navController.navigate("login") { popUpTo("home") { inclusive = true } }
+            } else {
+                PlantPalApp(
+                    currentUserId = currentUserId,
+                    onSignOut = {
+                        AuthRepository.signOut()
+                        navController.navigate("login") { popUpTo("home") { inclusive = true } }
                     }
-                }
+                )
+            }
+        }
+
+        composable(
+            route = "plantDetail/{plantId}",
+            arguments = listOf(navArgument("plantId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val plantId = backStackEntry.arguments?.getString("plantId") ?: return@composable
+            PlantDetailScreenWrapper(
+                plantId = plantId,
+                onBack = { navController.popBackStack() }
             )
         }
     }

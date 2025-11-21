@@ -11,8 +11,10 @@ import android.os.Build
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import com.google.firebase.firestore.SetOptions
 
 class PlantMessagingService : FirebaseMessagingService() {
 
@@ -74,7 +76,23 @@ class PlantMessagingService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        // TODO: Upload token to Firestore
-        println("FCM token refreshed: $token")
+
+        println("🌱 FCM token refreshed: $token")
+
+        val uid = AuthRepository.currentUserId()
+        if (uid != null) {
+            FirebaseFirestore.getInstance()
+                .collection("users")
+                .document(uid)
+                .set(mapOf("fcmToken" to token), SetOptions.merge()) // SAFE MERGE
+                .addOnSuccessListener {
+                    println("✅ Token updated for user: $uid")
+                }
+                .addOnFailureListener { e ->
+                    println("⚠️ Failed to update token: ${e.message}")
+                }
+        } else {
+            println("⚠️ No user logged in yet — token will be saved later.")
+        }
     }
 }

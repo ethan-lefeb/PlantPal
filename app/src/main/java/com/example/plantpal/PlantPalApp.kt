@@ -18,8 +18,10 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import com.example.plantpal.screens.profile.ProfileScreen
+import com.example.plantpal.screens.profile.SettingsScreen
+import com.example.plantpal.screens.profile.DeveloperSettingsScreen
 import com.example.plantpal.screens.detail.PlantDetailScreenWrapper
-
+import androidx.work.WorkManager
 
 data class Tab(val route: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
 
@@ -61,7 +63,8 @@ fun PlantPalApp(
                 if (currentRoute != null &&
                     !currentRoute.startsWith("plantDetail/") &&
                     !currentRoute.startsWith("addPlant/") &&
-                    currentRoute != "developerSettings" &&
+                    currentRoute != "settings" &&              // hide bottom bar
+                    currentRoute != "developerSettings" &&     // hide bottom bar
                     currentRoute != "avatarCustomization") {
 
                     NavigationBar(
@@ -116,6 +119,7 @@ fun PlantPalApp(
                     .padding(top = 8.dp)
             ) {
 
+                // HOME
                 composable("home") {
                     DashboardScreen(
                         onOpenLibrary = { navController.navigate("library") },
@@ -126,6 +130,7 @@ fun PlantPalApp(
                     )
                 }
 
+                // LIBRARY
                 composable("library") {
                     val plantsViewModel: PlantsViewModel = viewModel()
                     LaunchedEffect(Unit) { plantsViewModel.loadPlants() }
@@ -138,6 +143,7 @@ fun PlantPalApp(
                     )
                 }
 
+                // ALERTS
                 composable("alerts") {
                     AlertsScreen(
                         onOpenPlant = { plantId ->
@@ -146,10 +152,33 @@ fun PlantPalApp(
                     )
                 }
 
+                // PROFILE
                 composable("profile") {
-                    ProfileScreen(onSignOut = onSignOut)
+                    ProfileScreen(
+                        onSignOut = onSignOut,
+                        onDeveloperSettings = { navController.navigate("developerSettings") }
+                        // if you add a normal settings button, add:
+                        // onOpenSettings = { navController.navigate("settings") }
+                    )
                 }
 
+                // SETTINGS
+                composable("settings") {
+                    SettingsScreen(
+                        workManager = WorkManager.getInstance(),
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+
+                // DEVELOPER SETTINGS
+                composable("developerSettings") {
+                    DeveloperSettingsScreen(
+                        workManager = WorkManager.getInstance(),
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+
+                // ADD PLANT
                 composable(
                     route = "addPlant/{userId}",
                     arguments = listOf(navArgument("userId") { type = NavType.StringType })
@@ -159,15 +188,13 @@ fun PlantPalApp(
                         apiKey = PlantIdSecret.API_KEY,
                         currentUserId = userId,
                         onSaved = {
-                            navController.popBackStack(
-                                "library",
-                                inclusive = false
-                            )
+                            navController.popBackStack("library", inclusive = false)
                         },
                         onBack = { navController.popBackStack() }
                     )
                 }
 
+                // PLANT DETAIL
                 composable(
                     route = "plantDetail/{userId}/{plantId}",
                     arguments = listOf(
