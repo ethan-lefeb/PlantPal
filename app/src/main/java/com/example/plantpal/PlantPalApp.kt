@@ -63,8 +63,8 @@ fun PlantPalApp(
                 if (currentRoute != null &&
                     !currentRoute.startsWith("plantDetail/") &&
                     !currentRoute.startsWith("addPlant/") &&
-                    currentRoute != "settings" &&              // hide bottom bar
-                    currentRoute != "developerSettings" &&     // hide bottom bar
+                    currentRoute != "settings" &&
+                    currentRoute != "developerSettings" &&
                     currentRoute != "avatarCustomization") {
 
                     NavigationBar(
@@ -119,7 +119,6 @@ fun PlantPalApp(
                     .padding(top = 8.dp)
             ) {
 
-                // HOME
                 composable("home") {
                     DashboardScreen(
                         onOpenLibrary = { navController.navigate("library") },
@@ -130,7 +129,6 @@ fun PlantPalApp(
                     )
                 }
 
-                // LIBRARY
                 composable("library") {
                     val plantsViewModel: PlantsViewModel = viewModel()
                     LaunchedEffect(Unit) { plantsViewModel.loadPlants() }
@@ -143,7 +141,6 @@ fun PlantPalApp(
                     )
                 }
 
-                // ALERTS
                 composable("alerts") {
                     AlertsScreen(
                         onOpenPlant = { plantId ->
@@ -152,17 +149,13 @@ fun PlantPalApp(
                     )
                 }
 
-                // PROFILE
                 composable("profile") {
                     ProfileScreen(
                         onSignOut = onSignOut,
                         onDeveloperSettings = { navController.navigate("developerSettings") }
-                        // if you add a normal settings button, add:
-                        // onOpenSettings = { navController.navigate("settings") }
                     )
                 }
 
-                // SETTINGS
                 composable("settings") {
                     SettingsScreen(
                         workManager = WorkManager.getInstance(),
@@ -170,7 +163,6 @@ fun PlantPalApp(
                     )
                 }
 
-                // DEVELOPER SETTINGS
                 composable("developerSettings") {
                     DeveloperSettingsScreen(
                         workManager = WorkManager.getInstance(),
@@ -178,7 +170,6 @@ fun PlantPalApp(
                     )
                 }
 
-                // ADD PLANT
                 composable(
                     route = "addPlant/{userId}",
                     arguments = listOf(navArgument("userId") { type = NavType.StringType })
@@ -194,7 +185,6 @@ fun PlantPalApp(
                     )
                 }
 
-                // PLANT DETAIL
                 composable(
                     route = "plantDetail/{userId}/{plantId}",
                     arguments = listOf(

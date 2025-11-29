@@ -14,15 +14,20 @@ class CareReminderWorker(
 
     override suspend fun doWork(): Result {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return Result.failure()
-        val url = URL("https://us-central1-plantpal-3193b.cloudfunctions.net/testCareReminders?userId=$uid")
+        val url = URL("https://us-central1-plantpal-3193b.cloudfunctions.net/sendTestNotification?userId=$uid")
 
         return try {
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "GET"
             conn.connectTimeout = 5000
             conn.readTimeout = 5000
+
             val code = conn.responseCode
-            if (code == 200) Result.success() else Result.retry()
+            if (code == 200) {
+                Result.success()
+            } else {
+                Result.retry()
+            }
         } catch (e: Exception) {
             Result.retry()
         }
