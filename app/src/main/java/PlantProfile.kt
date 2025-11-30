@@ -51,6 +51,8 @@ data class PlantCareInfo(
 data class AvatarConfig(
     val baseType: String = "",
     val color: String = "",
+    val potColor: String = "terracotta",
+    val potStyle: String = "classic"
 )
 
 data class CareProfile(

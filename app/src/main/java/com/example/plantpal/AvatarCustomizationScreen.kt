@@ -32,10 +32,14 @@ fun AvatarCustomizationScreen(
 ) {
     var selectedBaseType by remember { mutableStateOf(currentConfig.baseType.ifEmpty { "generic" }) }
     var selectedColor by remember { mutableStateOf(currentConfig.color.ifEmpty { "green" }) }
+    var selectedPotColor by remember { mutableStateOf(currentConfig.potColor.ifEmpty { "terracotta" }) }
+    var selectedPotStyle by remember { mutableStateOf(currentConfig.potStyle.ifEmpty { "classic" }) }
     
     val previewConfig = AvatarConfig(
         baseType = selectedBaseType,
-        color = selectedColor
+        color = selectedColor,
+        potColor = selectedPotColor,
+        potStyle = selectedPotStyle
     )
     
     Box(
@@ -135,13 +139,42 @@ fun AvatarCustomizationScreen(
                 )
                 
                 val plantTypes = listOf(
-                    "generic" to "Generic",
-                    "succulent" to "Succulent",
-                    "cactus" to "Cactus",
-                    "flower" to "Flower",
-                    "fern" to "Fern",
+                    //Cacti
+                    "cactus_round" to "Barrel Cactus",
+                    "cactus_trailing" to "Holiday Cactus",
+                    //Succulents
+                    "succulent_rosette" to "Echeveria",
+                    "succulent_jade" to "Jade Plant",
+                    "succulent_string" to "String Plant",
+                    "succulent_aloe" to "Aloe",
+                    //Common
+                    "snake_plant" to "Snake Plant",
+                    "pothos" to "Pothos",
+                    "philodendron_heart" to "Philodendron",
+                    "monstera" to "Monstera",
+                    //Ferns
+                    "fern_boston" to "Boston Fern",
+                    "fern_maidenhair" to "Maidenhair Fern",
+                    "fern_birds_nest" to "Bird's Nest Fern",
+                    //Other
+                    "prayer_plant" to "Prayer Plant",
+                    "spider_plant" to "Spider Plant",
+                    "peace_lily" to "Peace Lily",
+                    "zz_plant" to "ZZ Plant",
+                    "rubber_plant" to "Rubber Plant",
+                    "fiddle_leaf" to "Fiddle Leaf Fig",
+                    "dracaena" to "Dracaena",
+                    "palm" to "Palm",
+                    //Flowering
+                    "orchid" to "Orchid",
+                    "african_violet" to "African Violet",
+                    //Small Plants
+                    "peperomia" to "Peperomia",
+                    "pilea" to "Pilea",
+                    //Basic
+                    "herb" to "Herb",
                     "tree" to "Tree",
-                    "herb" to "Herb"
+                    "generic" to "Generic"
                 )
                 
                 LazyRow(
@@ -197,12 +230,82 @@ fun AvatarCustomizationScreen(
                 }
                 
                 Spacer(Modifier.height(16.dp))
+                
+                Text(
+                    "Pot Color",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color(0xFF2F5233),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp)
+                )
+                
+                val potColors = listOf(
+                    "terracotta" to "Terracotta",
+                    "ceramic_white" to "White Ceramic",
+                    "ceramic_blue" to "Blue Ceramic",
+                    "ceramic_green" to "Green Ceramic",
+                    "modern_gray" to "Modern Gray",
+                    "rustic_brown" to "Rustic Brown",
+                    "pink" to "Pink",
+                    "yellow" to "Yellow",
+                    "purple" to "Purple"
+                )
+                
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 24.dp)
+                ) {
+                    items(potColors) { (potColor, label) ->
+                        ModernOptionCard(
+                            label = label,
+                            isSelected = selectedPotColor == potColor,
+                            onClick = { selectedPotColor = potColor }
+                        )
+                    }
+                }
+                
+                Text(
+                    "Pot Style",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color(0xFF2F5233),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp)
+                )
+                
+                val potStyles = listOf(
+                    "classic" to "Classic",
+                    "modern" to "Modern",
+                    "hanging" to "Hanging"
+                )
+                
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 24.dp)
+                ) {
+                    items(potStyles) { (style, label) ->
+                        ModernOptionCard(
+                            label = label,
+                            isSelected = selectedPotStyle == style,
+                            onClick = { selectedPotStyle = style }
+                        )
+                    }
+                }
+                
+                Spacer(Modifier.height(16.dp))
 
                 Button(
                     onClick = {
                         val randomConfig = AvatarGenerator.generateRandomAvatar()
                         selectedBaseType = randomConfig.baseType
                         selectedColor = randomConfig.color
+                        selectedPotColor = randomConfig.potColor
+                        selectedPotStyle = randomConfig.potStyle
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
@@ -233,6 +336,8 @@ fun AvatarCustomizationScreen(
                         }
                         selectedBaseType = autoConfig.baseType
                         selectedColor = autoConfig.color
+                        selectedPotColor = autoConfig.potColor
+                        selectedPotStyle = autoConfig.potStyle
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
