@@ -17,7 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.text.style.TextOverflow
 import coil.compose.rememberAsyncImagePainter
 import kotlinx.coroutines.delay
@@ -258,7 +257,7 @@ fun PlantCareDetailScreen(
                 onClick = { showAvatarCustomization = true },
                 modifier = Modifier.fillMaxWidth(0.6f)
             ) {
-                Text("ðŸŽ¨ Customize Avatar")
+                Text("Customize Avatar")
             }
 
             Spacer(Modifier.height(24.dp))

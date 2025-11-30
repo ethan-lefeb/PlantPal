@@ -7,23 +7,24 @@ import kotlinx.coroutines.withContext
 object AvatarDebugUtils {
     private const val TAG = "AvatarDebug"
 
-    suspend fun regenerateAllAvatars(repository: PlantRepository): Result<Int> {
+    suspend fun regenerateAllAvatars(repository: PlantRepository, forceAll: Boolean = false): Result<Int> {
         return withContext(Dispatchers.IO) {
             try {
                 val plants = repository.getAllPlants().getOrNull() ?: emptyList()
                 var updatedCount = 0
                 
-                Log.d(TAG, "Starting avatar regeneration for ${plants.size} plants")
+                Log.d(TAG, "Starting avatar regeneration for ${plants.size} plants (forceAll=$forceAll)")
                 
                 plants.forEach { plant ->
                     Log.d(TAG, "Checking plant: ${plant.commonName}")
                     Log.d(TAG, "  Current avatar config: baseType=${plant.avatarConfig.baseType}, color=${plant.avatarConfig.color}")
                     Log.d(TAG, "  Plant family: ${plant.careInfo.family}, genus: ${plant.careInfo.genus}")
+
+                    val shouldRegenerate = forceAll || 
+                        plant.avatarConfig.baseType.isEmpty() || 
+                        (plant.avatarConfig.baseType == "generic" && plant.careInfo.family.isNotEmpty())
                     
-                    // Regenerate if avatar is empty or default
-                    if (plant.avatarConfig.baseType.isEmpty() || 
-                        plant.avatarConfig.baseType == "generic" && plant.careInfo.family.isNotEmpty()) {
-                        
+                    if (shouldRegenerate) {
                         val newConfig = AvatarGenerator.generateAvatarForPlant(
                             family = plant.careInfo.family,
                             genus = plant.careInfo.genus,
@@ -38,12 +39,12 @@ object AvatarDebugUtils {
                         
                         if (result.isSuccess) {
                             updatedCount++
-                            Log.d(TAG, "  âœ… Updated successfully")
+                            Log.d(TAG, "  ✅ Updated successfully")
                         } else {
-                            Log.e(TAG, "  âŒ Failed to update: ${result.exceptionOrNull()?.message}")
+                            Log.e(TAG, "  ❌ Failed to update: ${result.exceptionOrNull()?.message}")
                         }
                     } else {
-                        Log.d(TAG, "  â­ï¸  Skipping - avatar already set")
+                        Log.d(TAG, "  ⏭️  Skipping - avatar already set")
                     }
                 }
                 
