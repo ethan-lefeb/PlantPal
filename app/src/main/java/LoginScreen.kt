@@ -2,100 +2,135 @@ package com.example.plantpal
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+
+// 🌲 Forest Breeze palette (tweaked)
+private val ForestPrimary = Color(0xFF264C2D) // text / icons
+private val ForestGradientBalanced = listOf(
+    Color(0xFFE0F7E9), // soft mint top
+    Color(0xFFC5F1D3), // pastel green mid
+    Color(0xFFAEE9C0)  // calm green bottom
+)
+
+private val ForestButton = Color(0xFF2E7D32)  // new button color (deep forest green)
+private val ForestSecondaryText = ForestPrimary.copy(alpha = 0.7f)
 
 @Composable
 fun LoginScreen(
-    onSuccess: () -> Unit,
-    onNavigateToSignup: () -> Unit
+    onSuccess: () -> Unit = {},
+    onNavigateToSignup: () -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
 
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var isLoading by rememberSaveable { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                Brush.verticalGradient(
-                    listOf(
-                        Color(0xFFB5E48C),
-                        Color(0xFFD9ED92),
-                        Color(0xFF99D98C)
-                    )
-                )
+                Brush.verticalGradient(ForestGradientBalanced)
             )
             .padding(24.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .align(Alignment.Center)
+                .align(Alignment.Center),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Icon
+            Icon(
+                imageVector = Icons.Default.Eco,
+                contentDescription = null,
+                tint = ForestPrimary,
+                modifier = Modifier
+                    .size(64.dp)
+                    .padding(bottom = 8.dp)
+            )
 
+            // Header Text
             Text(
-                text = "Welcome Back!",
+                text = "Welcome Back",
                 style = MaterialTheme.typography.headlineSmall.copy(
-                    color = Color(0xFF2F5233)
+                    fontWeight = FontWeight.Bold,
+                    color = ForestPrimary
                 ),
-                modifier = Modifier.padding(bottom = 16.dp)
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(bottom = 32.dp)
             )
 
-            Text(
-                text = "Let's get you back to your plants 🌿",
-                style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF2F5233)),
-                modifier = Modifier.padding(bottom = 24.dp)
-            )
-
+            // Email Field
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
                 label = { Text("Email") },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = ForestPrimary,
+                    unfocusedBorderColor = ForestPrimary.copy(alpha = 0.4f),
+                    cursorColor = ForestPrimary,
+                    focusedLabelColor = ForestPrimary
+                )
             )
-            Spacer(Modifier.height(12.dp))
 
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Password Field
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
                 label = { Text("Password") },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth()
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = ForestPrimary,
+                    unfocusedBorderColor = ForestPrimary.copy(alpha = 0.4f),
+                    cursorColor = ForestPrimary,
+                    focusedLabelColor = ForestPrimary
+                )
             )
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            errorMessage?.let {
-                Text(
-                    it,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(vertical = 4.dp)
-                )
-            }
-
-            Spacer(Modifier.height(12.dp))
-
+            // Login Button (new color)
             Button(
                 onClick = {
+                    if (email.isBlank() || password.isBlank()) {
+                        errorMessage = "Email and password are required."
+                        return@Button
+                    }
+
                     isLoading = true
                     errorMessage = null
+
                     scope.launch {
                         val result = AuthRepository.login(email.trim(), password)
                         isLoading = false
-                        result.onSuccess { onSuccess() }
+                        result
+                            .onSuccess { onSuccess() }
                             .onFailure { e ->
                                 errorMessage = e.message ?: "Login failed"
                             }
@@ -103,28 +138,59 @@ fun LoginScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp),
+                    .height(50.dp),
                 enabled = !isLoading,
-                shape = MaterialTheme.shapes.medium,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF52796F),
-                    contentColor = Color.White
-                )
-            ) {
-                Text(text = if (isLoading) "Logging in..." else "Log in")
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            TextButton(
-                onClick = onNavigateToSignup,
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = Color(0xFF2F5233)
+                    containerColor = ForestButton
                 ),
-                modifier = Modifier.align(Alignment.CenterHorizontally)
+                shape = RoundedCornerShape(50)
             ) {
-                Text("Need an account? Sign up")
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                } else {
+                    Text("Log in", color = Color.White, fontWeight = FontWeight.SemiBold)
+                }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            TextButton(onClick = onNavigateToSignup) {
+                Text(
+                    "Need an account? Sign up",
+                    color = ForestPrimary,
+                    fontSize = 14.sp
+                )
+            }
+
+            if (errorMessage != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = errorMessage!!,
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = "Grow your green journey with PlantPal",
+                style = MaterialTheme.typography.bodySmall.copy(
+                    color = ForestSecondaryText,
+                    textAlign = TextAlign.Center
+                ),
+                textAlign = TextAlign.Center
+            )
         }
     }
+}
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun LoginScreenPreview() {
+    LoginScreen()
 }
