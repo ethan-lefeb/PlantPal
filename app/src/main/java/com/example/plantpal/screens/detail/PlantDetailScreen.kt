@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -43,8 +44,6 @@ data class PlantDetailUiState(
     val error: String? = null,
     val actionInProgress: String? = null
 )
-
-
 
 class PlantDetailViewModel(private val plantId: String) : ViewModel() {
 
@@ -128,7 +127,11 @@ fun PlantDetailScreen(
     var showHealthDialog by remember { mutableStateOf(false) }
     var showAvatarCustomization by remember { mutableStateOf(false) }
     var currentPlantForCustomization by remember { mutableStateOf<PlantProfile?>(null) }
-
+    
+    // Calculate health metrics for the plant
+    val healthMetrics = remember(uiState.plant) {
+        uiState.plant?.let { PlantHealthCalculator.calculateHealth(it) }
+    }
 
     Box(
         modifier = Modifier.fillMaxSize().background(
@@ -140,7 +143,28 @@ fun PlantDetailScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text(uiState.plant?.commonName ?: "Plant Details") },
+                    title = {
+                        Column {
+                            Text(uiState.plant?.commonName ?: "Plant Details")
+                            // Add health subtitle
+                            if (healthMetrics != null) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(
+                                        PlantHealthCalculator.getHealthEmoji(healthMetrics.healthStatus),
+                                        style = MaterialTheme.typography.labelMedium
+                                    )
+                                    Text(
+                                        "${(healthMetrics.overallHealth * 100).toInt()}% Health",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = PlantHealthCalculator.getHealthColor(healthMetrics)
+                                    )
+                                }
+                            }
+                        }
+                    },
                     navigationIcon = {
                         IconButton(onClick = onNavigateBack) {
                             Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
@@ -153,7 +177,10 @@ fun PlantDetailScreen(
                         ) {
                             Icon(Icons.Filled.Edit, contentDescription = "Edit")
                         }
-                    }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent
+                    )
                 )
             },
             containerColor = Color.Transparent
@@ -179,6 +206,7 @@ fun PlantDetailScreen(
                     
                     PlantDetailContent(
                         plant = currentPlant,
+                        healthMetrics = healthMetrics,
                         onWaterPlant = {
                             currentPlant = currentPlant.copy(
                                 lastWatered = System.currentTimeMillis()
@@ -271,6 +299,7 @@ private fun ErrorState(
 @Composable
 fun PlantDetailContent(
     plant: PlantProfile,
+    healthMetrics: PlantHealthCalculator.HealthMetrics?,
     onWaterPlant: () -> Unit,
     onFertilizePlant: () -> Unit,
     onUpdateHealth: () -> Unit,
@@ -292,15 +321,16 @@ fun PlantDetailContent(
     )
     val particleSystem = rememberParticleSystem()
     val scope = rememberCoroutineScope()
+    
     val handleWater: () -> Unit = {
         scope.launch {
             if (pagerState.currentPage != 0) {
                 pagerState.animateScrollToPage(0)
                 delay(200)
             }
+
             particleSystem.waterEffect(centerX = avatarCenterX, centerY = avatarCenterY)
             animationController.triggerAnimation(AnimationType.WATERING, intensity = 1.0f)
-            animationController.triggerAnimation(AnimationType.HAPPY, intensity = 1.0f)
             delay(2000)
             onWaterPlant()
         }
@@ -341,7 +371,8 @@ fun PlantDetailContent(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Spacer(Modifier.height(16.dp))
 
@@ -352,34 +383,70 @@ fun PlantDetailContent(
                 Text("🎨 Customize Avatar")
             }
 
-            Spacer(Modifier.height(24.dp))
-
-            Text(plant.commonName, style = MaterialTheme.typography.headlineMedium)
-            Text(
-                plant.scientificName,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            if (plant.confidence > 0.0) {
-                Text(
-                    "Confidence: ${(plant.confidence * 100).toInt()}%",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            if (healthMetrics != null) {
+                HealthMetricsCard(
+                    plant = plant,
+                    metrics = healthMetrics
                 )
             }
 
-            Spacer(Modifier.height(16.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        plant.commonName,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        plant.scientificName,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    if (plant.confidence > 0.0) {
+                        Text(
+                            "Identification Confidence: ${(plant.confidence * 100).toInt()}%",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Divider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    InfoRow("Sunlight", plant.sunlight)
+                    InfoRow("Water Frequency", "Every ${plant.wateringFrequency} days")
+                    InfoRow("Fertilize Frequency", "Every ${plant.fertilizerFrequency} days")
+                    
+                    if (plant.notes.isNotEmpty()) {
+                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                        Text(
+                            "Notes",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            plant.notes,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
 
             HealthStatusSection(plant, onUpdateHealth)
 
             Spacer(Modifier.height(16.dp))
 
-            CareActionsSection(
-                actionInProgress = actionInProgress,
-                onWaterPlant = handleWater,
-                onFertilizePlant = handleFertilize
-            )
+            CareActionsSection(actionInProgress, handleWater, handleFertilize)
+
+            Spacer(Modifier.height(32.dp))
         }
     }
 }
@@ -396,9 +463,11 @@ private fun PlantImageWithAvatar(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(280.dp)
+            .height(300.dp)
             .padding(horizontal = 16.dp)
-            .padding(top = 16.dp)
+            .padding(top = 16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        shape = MaterialTheme.shapes.medium
     ) {
         Box(
             modifier = Modifier
@@ -524,6 +593,25 @@ private fun PlantImageWithAvatar(
 }
 
 @Composable
+private fun InfoRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
+@Composable
 private fun HealthStatusSection(
     plant: PlantProfile,
     onUpdateHealth: () -> Unit
@@ -599,7 +687,6 @@ private fun CareActionsSection(
         }
     }
 }
-
 
 @Composable
 fun EditPlantDialog(
