@@ -10,7 +10,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -18,6 +17,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.example.plantpal.ui.theme.ForestCardBackground
+import com.example.plantpal.ui.theme.ForestGradientBalanced
+import com.example.plantpal.ui.theme.ForestPrimary
+import com.example.plantpal.ui.theme.ForestSecondaryText
 
 @Composable
 fun HomeScreenContent(
@@ -29,11 +32,7 @@ fun HomeScreenContent(
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFFB5E48C),
-                        Color(0xFFD9ED92),
-                        Color(0xFF99D98C)
-                    )
+                    colors = ForestGradientBalanced
                 )
             )
             .padding(16.dp)
@@ -44,12 +43,11 @@ fun HomeScreenContent(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            //
             Text(
                 text = "Welcome back, $username!",
                 style = MaterialTheme.typography.headlineSmall.copy(
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF2F5233)
+                    color = ForestPrimary
                 ),
                 textAlign = TextAlign.Center
             )
@@ -60,7 +58,7 @@ fun HomeScreenContent(
                 text = "My Plants",
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF2F5233)
+                    color = ForestPrimary
                 )
             )
 
@@ -77,12 +75,10 @@ fun HomeScreenContent(
             Spacer(modifier = Modifier.height(32.dp))
 
 
-
-            
             Text(
                 text = "“Plants give us oxygen for the lungs and the soul.”",
                 style = MaterialTheme.typography.bodySmall.copy(
-                    color = Color(0xFF52796F),
+                    color = ForestSecondaryText,
                     fontSize = 13.sp
                 ),
                 textAlign = TextAlign.Center,
@@ -98,7 +94,7 @@ fun PlantCard(name: String, status: String) {
         modifier = Modifier
             .size(width = 120.dp, height = 120.dp),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFE9F5DB)),
+        colors = CardDefaults.cardColors(containerColor = ForestCardBackground),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
@@ -109,12 +105,12 @@ fun PlantCard(name: String, status: String) {
             Icon(
                 imageVector = Icons.Default.LocalFlorist,
                 contentDescription = null,
-                tint = Color(0xFF2F5233),
+                tint = ForestPrimary,
                 modifier = Modifier.size(32.dp)
             )
             Spacer(modifier = Modifier.height(8.dp))
-            Text(name, fontWeight = FontWeight.Bold, color = Color(0xFF2F5233))
-            Text(status, fontSize = 12.sp, color = Color(0xFF52796F))
+            Text(name, fontWeight = FontWeight.Bold, color = ForestPrimary)
+            Text(status, fontSize = 12.sp, color = ForestSecondaryText)
         }
     }
 }

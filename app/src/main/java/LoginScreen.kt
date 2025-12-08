@@ -19,17 +19,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import com.example.plantpal.ui.theme.ForestPrimary
+import com.example.plantpal.ui.theme.ForestGradientBalanced
+import com.example.plantpal.ui.theme.ForestButton
+import com.example.plantpal.ui.theme.ForestSecondaryText
+import com.example.plantpal.ui.theme.ForestCardBackground
 
-// 🌲 Forest Breeze palette (tweaked)
-private val ForestPrimary = Color(0xFF264C2D) // text / icons
-private val ForestGradientBalanced = listOf(
-    Color(0xFFE0F7E9), // soft mint top
-    Color(0xFFC5F1D3), // pastel green mid
-    Color(0xFFAEE9C0)  // calm green bottom
-)
-
-private val ForestButton = Color(0xFF2E7D32)  // new button color (deep forest green)
-private val ForestSecondaryText = ForestPrimary.copy(alpha = 0.7f)
 
 @Composable
 fun LoginScreen(

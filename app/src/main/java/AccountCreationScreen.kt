@@ -18,6 +18,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.plantpal.ui.theme.ForestButton
+import com.example.plantpal.ui.theme.ForestGradientBalanced
+import com.example.plantpal.ui.theme.ForestPrimary
+import com.example.plantpal.ui.theme.ForestSecondaryText
 
 @Composable
 fun AccountCreationScreen(
@@ -35,13 +39,7 @@ fun AccountCreationScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                Brush.verticalGradient(
-                    listOf(
-                        Color(0xFFB5E48C),
-                        Color(0xFFD9ED92),
-                        Color(0xFF99D98C)
-                    )
-                )
+                Brush.verticalGradient(ForestGradientBalanced)
             )
             .padding(24.dp)
     ) {
@@ -55,7 +53,7 @@ fun AccountCreationScreen(
             Icon(
                 imageVector = Icons.Default.Eco,
                 contentDescription = null,
-                tint = Color(0xFF2F5233),
+                tint = ForestPrimary,
                 modifier = Modifier
                     .size(64.dp)
                     .padding(bottom = 8.dp)
@@ -66,7 +64,7 @@ fun AccountCreationScreen(
                 text = "Create Your Account",
                 style = MaterialTheme.typography.headlineSmall.copy(
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF2F5233)
+                    color = ForestPrimary
                 ),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(bottom = 32.dp)
@@ -78,7 +76,13 @@ fun AccountCreationScreen(
                 onValueChange = { displayName = it },
                 label = { Text("Display name") },
                 shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = ForestPrimary,
+                    unfocusedBorderColor = ForestPrimary.copy(alpha = 0.4f),
+                    cursorColor = ForestPrimary,
+                    focusedLabelColor = ForestPrimary
+                )
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -89,7 +93,13 @@ fun AccountCreationScreen(
                 onValueChange = { email = it },
                 label = { Text("Email") },
                 shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = ForestPrimary,
+                    unfocusedBorderColor = ForestPrimary.copy(alpha = 0.4f),
+                    cursorColor = ForestPrimary,
+                    focusedLabelColor = ForestPrimary
+                )
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -100,19 +110,25 @@ fun AccountCreationScreen(
                 onValueChange = { password = it },
                 label = { Text("Password") },
                 shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = ForestPrimary,
+                    unfocusedBorderColor = ForestPrimary.copy(alpha = 0.4f),
+                    cursorColor = ForestPrimary,
+                    focusedLabelColor = ForestPrimary
+                )
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Sign Up Button
+            // Sign Up Button (matches login button)
             Button(
                 onClick = { viewModel.register(email.trim(), password, displayName.trim()) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
                 enabled = !uiState.isLoading,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6F61)),
+                colors = ButtonDefaults.buttonColors(containerColor = ForestButton),
                 shape = RoundedCornerShape(50)
             ) {
                 if (uiState.isLoading) {
@@ -130,7 +146,7 @@ fun AccountCreationScreen(
             TextButton(onClick = onNavigateToLogin) {
                 Text(
                     "Already have an account? Log in",
-                    color = Color(0xFF2F5233),
+                    color = ForestPrimary,
                     fontSize = 14.sp
                 )
             }
@@ -159,7 +175,7 @@ fun AccountCreationScreen(
             Text(
                 text = "Join the PlantPal community and start growing!",
                 style = MaterialTheme.typography.bodySmall.copy(
-                    color = Color(0xFF52796F),
+                    color = ForestSecondaryText,
                     textAlign = TextAlign.Center
                 ),
                 textAlign = TextAlign.Center
@@ -171,14 +187,6 @@ fun AccountCreationScreen(
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun AccountCreationScreenPreview() {
-    // Fake state for preview (simulates normal use)
-    val fakeUiState = AuthUiState(
-        isLoading = false,
-        success = false,
-        error = null
-    )
-
-    // You can display the screen without a real ViewModel for preview
     Box(modifier = Modifier.fillMaxSize()) {
         AccountCreationScreen(
             onNavigateToLogin = {},
