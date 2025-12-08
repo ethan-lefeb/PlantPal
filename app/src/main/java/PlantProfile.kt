@@ -12,6 +12,9 @@ data class PlantProfile(
     val baseType: String = "",
     val color: String = "",
     val careProfile: CareProfile = CareProfile(),
+    //not used yet, but i plan to use these to allow the user to determine water and fertilization frequencies independently of the defined times.
+    val reminderHour: Int? = null,
+    val reminderMinute: Int? = null,
     val wateringFrequency: Int = 7,
     val sunlight: String = "",
     val fertilizerFrequency: Int = 30,
@@ -60,7 +63,9 @@ data class CareProfile(
     val sunlight: String = "",
     val fertilizerFrequency: Int = 30,
     val lastRotated: Long = 0L,
-    val rotationFrequency: Int = 14
+    val rotationFrequency: Int = 14,
+    var reminderHour: Int? = null,
+    var reminderMinute: Int? = null
 )
 
 data class CurrentStatus(
