@@ -3,6 +3,7 @@ package com.example.plantpal.screens.profile
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Logout
 import androidx.compose.material3.*
@@ -17,7 +18,8 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun ProfileScreen(
     onSignOut: () -> Unit,
-    onDeveloperSettings: () -> Unit = {}
+    onDeveloperSettings: () -> Unit = {},
+    onBadges: () -> Unit = {}
 ) {
     Box(
         modifier = Modifier
@@ -46,6 +48,20 @@ fun ProfileScreen(
                 ),
                 modifier = Modifier.padding(bottom = 32.dp)
             )
+
+            OutlinedButton(
+                onClick = onBadges,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = Color(0xFF2F5233)
+                )
+            ) {
+                Icon(Icons.Default.EmojiEvents, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Badges & Progress")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedButton(
                 onClick = onDeveloperSettings,
