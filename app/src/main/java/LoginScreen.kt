@@ -24,6 +24,7 @@ import com.example.plantpal.ui.theme.ForestGradientBalanced
 import com.example.plantpal.ui.theme.ForestButton
 import com.example.plantpal.ui.theme.ForestSecondaryText
 import com.example.plantpal.ui.theme.ForestCardBackground
+import com.example.plantpal.ui.components.EntryButton
 
 
 @Composable
@@ -110,45 +111,28 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Login Button (new color)
-            Button(
-                onClick = {
-                    if (email.isBlank() || password.isBlank()) {
-                        errorMessage = "Email and password are required."
-                        return@Button
-                    }
-
-                    isLoading = true
-                    errorMessage = null
-
-                    scope.launch {
-                        val result = AuthRepository.login(email.trim(), password)
-                        isLoading = false
-                        result
-                            .onSuccess { onSuccess() }
-                            .onFailure { e ->
-                                errorMessage = e.message ?: "Login failed"
-                            }
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                enabled = !isLoading,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = ForestButton
-                ),
-                shape = RoundedCornerShape(50)
+            EntryButton(
+                text = "ENTRY"
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        color = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                } else {
-                    Text("Log in", color = Color.White, fontWeight = FontWeight.SemiBold)
+                if (email.isBlank() || password.isBlank()) {
+                    errorMessage = "Email and password are required."
+                    return@EntryButton
+                }
+
+                isLoading = true
+                errorMessage = null
+
+                scope.launch {
+                    val result = AuthRepository.login(email.trim(), password)
+                    isLoading = false
+                    result
+                        .onSuccess { onSuccess() }
+                        .onFailure { e ->
+                            errorMessage = e.message ?: "Login failed"
+                        }
                 }
             }
+
 
             Spacer(modifier = Modifier.height(16.dp))
 
