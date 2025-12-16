@@ -127,8 +127,7 @@ fun PlantDetailScreen(
     var showHealthDialog by remember { mutableStateOf(false) }
     var showAvatarCustomization by remember { mutableStateOf(false) }
     var currentPlantForCustomization by remember { mutableStateOf<PlantProfile?>(null) }
-    
-    // Calculate health metrics for the plant
+
     val healthMetrics = remember(uiState.plant) {
         uiState.plant?.let { PlantHealthCalculator.calculateHealth(it) }
     }
@@ -146,7 +145,6 @@ fun PlantDetailScreen(
                     title = {
                         Column {
                             Text(uiState.plant?.commonName ?: "Plant Details")
-                            // Add health subtitle
                             if (healthMetrics != null) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
@@ -251,16 +249,12 @@ fun PlantDetailScreen(
         }
 
         if (showAvatarCustomization && currentPlantForCustomization != null) {
-            AvatarCustomizationScreen(
-                currentConfig = currentPlantForCustomization!!.avatarConfig,
-                plantName = currentPlantForCustomization!!.commonName,
-                plant = currentPlantForCustomization,
-                onSave = { newConfig ->
-                    val updatedPlant = currentPlantForCustomization!!.copy(avatarConfig = newConfig)
-                    viewModel.updatePlant(updatedPlant)
+            GamifiedAvatarCustomizationScreen(
+                plantId = currentPlantForCustomization!!.plantId,
+                onNavigateBack = {
                     showAvatarCustomization = false
-                },
-                onBack = { showAvatarCustomization = false }
+                    viewModel.loadPlant()
+                }
             )
         }
     }

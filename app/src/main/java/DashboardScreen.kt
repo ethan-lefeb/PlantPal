@@ -26,10 +26,14 @@ import kotlin.math.max
 fun DashboardScreen(
     onOpenLibrary: () -> Unit,
     onAddPlant: () -> Unit,
-    onOpenPlant: (String) -> Unit
+    onOpenPlant: (String) -> Unit,
+    onOpenBadges: () -> Unit = {}
 ) {
     val repo = remember { PlantRepository() }
+    val progressRepo = remember { ProgressRepository() }
+    
     var plants by remember { mutableStateOf<List<PlantProfile>>(emptyList()) }
+    var progress by remember { mutableStateOf<UserProgress?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -37,9 +41,18 @@ fun DashboardScreen(
     LaunchedEffect(Unit) {
         scope.launch {
             isLoading = true
-            repo.getAllPlants()
+
+            val plantsResult = repo.getAllPlants()
+            val progressResult = progressRepo.getUserProgress()
+            
+            plantsResult
                 .onSuccess { plants = it; error = null }
                 .onFailure { error = it.message }
+                
+            progressResult
+                .onSuccess { progress = it }
+                .onFailure { /* Progress is optional, so just log */ }
+            
             isLoading = false
         }
     }
@@ -108,6 +121,15 @@ fun DashboardScreen(
                 item {
                     Text("Dashboard", style = MaterialTheme.typography.headlineMedium)
                     Spacer(Modifier.height(8.dp))
+                }
+                if (progress != null) {
+                    item {
+                        StreakWidget(
+                            currentStreak = progress!!.currentStreak,
+                            longestStreak = progress!!.longestStreak,
+                            onClick = onOpenBadges
+                        )
+                    }
                 }
 
                 if (total > 0) {
@@ -326,9 +348,8 @@ private fun HealthStatusPill(text: String, color: Color) {
         Text(
             text = text,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            style = MaterialTheme.typography.labelLarge,
-            color = color,
-            fontWeight = FontWeight.SemiBold
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium
         )
     }
 }
@@ -343,33 +364,55 @@ private fun EnhancedStatCard(
 ) {
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        elevation = CardDefaults.cardElevation(4.dp),
-        shape = MaterialTheme.shapes.medium
+        colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.1f)),
+        elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Column(
-            Modifier.padding(16.dp),
+            modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                icon,
-                style = MaterialTheme.typography.headlineMedium
-            )
-            Spacer(Modifier.height(4.dp))
+            Text(icon, style = MaterialTheme.typography.headlineMedium)
+            Spacer(Modifier.height(8.dp))
             Text(
                 value,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = color
             )
-            Spacer(Modifier.height(4.dp))
             Text(
                 label,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+    }
+}
+
+@Composable
+private fun SectionHeader(
+    title: String,
+    action: String? = null,
+    onAction: (() -> Unit)? = null
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
+        if (action != null && onAction != null) {
+            TextButton(onClick = onAction) {
+                Text(action)
+                Icon(
+                    Icons.Default.ArrowForward,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
         }
     }
 }
@@ -385,67 +428,38 @@ private fun UrgentPlantCard(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
-            containerColor = when (metrics.healthStatus) {
-                "critical" -> Color(0xFFFFF3E0)
-                else -> MaterialTheme.colorScheme.surface
-            }
+            containerColor = Color(0xFFFFF3E0)
         ),
-        elevation = CardDefaults.cardElevation(3.dp),
-        shape = MaterialTheme.shapes.medium
+        elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
+            modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             PlantAvatar(
                 avatarConfig = plant.avatarConfig,
                 health = metrics.healthStatus,
-                size = 60.dp,
+                size = 50.dp,
                 animated = false
             )
-            
             Spacer(Modifier.width(12.dp))
-            
-            Column(Modifier.weight(1f)) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     plant.commonName,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(Modifier.height(4.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(PlantHealthCalculator.getHealthColor(metrics))
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        "${(metrics.overallHealth * 100).toInt()}% Health",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = PlantHealthCalculator.getHealthColor(metrics)
-                    )
-                }
-                
-                Spacer(Modifier.height(4.dp))
-
                 Text(
-                    PlantHealthCalculator.getRecommendedAction(metrics, plant),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+                    metrics.healthStatus,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFFE65100)
                 )
             }
-            
             Icon(
-                Icons.Default.ArrowForward,
-                contentDescription = "Open",
-                tint = MaterialTheme.colorScheme.primary
+                Icons.Default.Warning,
+                contentDescription = null,
+                tint = Color(0xFFFF6F00),
+                modifier = Modifier.size(24.dp)
             )
         }
     }
@@ -467,9 +481,7 @@ private fun UpcomingCareCard(
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Row(
-            modifier = Modifier
-                .padding(12.dp)
-                .fillMaxWidth(),
+            modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             PlantAvatar(
@@ -478,62 +490,43 @@ private fun UpcomingCareCard(
                 size = 50.dp,
                 animated = false
             )
-            
             Spacer(Modifier.width(12.dp))
-            
-            Column(Modifier.weight(1f)) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     plant.commonName,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     when {
-                        metrics.daysUntilWaterNeeded == 0 -> "💧 Water today"
-                        metrics.daysUntilWaterNeeded == 1 -> "💧 Water tomorrow"
+                        metrics.daysUntilWaterNeeded <= 0 -> "💧 Water now"
+                        metrics.daysUntilWaterNeeded == 1 -> "💧 Water in 1 day"
                         else -> "💧 Water in ${metrics.daysUntilWaterNeeded} days"
                     },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
-            
             Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = PlantHealthCalculator.getHealthColor(metrics).copy(alpha = 0.2f)
+                shape = CircleShape,
+                color = when {
+                    metrics.overallHealth >= 0.75f -> Color(0xFF4CAF50).copy(alpha = 0.2f)
+                    metrics.overallHealth >= 0.45f -> Color(0xFFFFC107).copy(alpha = 0.2f)
+                    else -> Color(0xFFF44336).copy(alpha = 0.2f)
+                }
             ) {
                 Text(
                     "${(metrics.overallHealth * 100).toInt()}%",
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = PlantHealthCalculator.getHealthColor(metrics),
-                    fontWeight = FontWeight.Bold
+                    modifier = Modifier.padding(8.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = when {
+                        metrics.overallHealth >= 0.75f -> Color(0xFF4CAF50)
+                        metrics.overallHealth >= 0.45f -> Color(0xFFFFC107)
+                        else -> Color(0xFFF44336)
+                    }
                 )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SectionHeader(
-    title: String,
-    action: String? = null,
-    onAction: (() -> Unit)? = null
-) {
-    Row(
-        Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            title,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
-        )
-        if (action != null && onAction != null) {
-            TextButton(onClick = onAction) {
-                Text(action)
             }
         }
     }

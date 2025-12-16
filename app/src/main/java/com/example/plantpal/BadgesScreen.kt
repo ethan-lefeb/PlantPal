@@ -1,18 +1,17 @@
 package com.example.plantpal
 
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,6 +31,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+
 
 data class BadgesUiState(
     val progress: UserProgress? = null,
@@ -100,73 +100,61 @@ fun BadgesScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     
-    Box(
-        modifier = Modifier
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { 
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("Badges & Rewards")
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            "🏆",
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFF52796F),
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
+                )
+            )
+        }
+    ) { padding ->
+        Box(modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    listOf(
+                    colors = listOf(
                         Color(0xFFB5E48C),
                         Color(0xFFD9ED92),
                         Color(0xFF99D98C)
                     )
                 )
             )
-    ) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text("Badges & Achievements") },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent
-                    )
+        ) {
+            if (uiState.isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center)
                 )
-            },
-            containerColor = Color.Transparent
-        ) { padding ->
-            when {
-                uiState.isLoading -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(padding),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
-                }
-                
-                uiState.error != null -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(padding),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                "Error loading badges",
-                                color = MaterialTheme.colorScheme.error
-                            )
-                            Spacer(Modifier.height(12.dp))
-                            Button(onClick = { viewModel.loadBadges() }) {
-                                Text("Retry")
-                            }
-                        }
-                    }
-                }
-                
-                else -> {
-                    BadgesContent(
-                        uiState = uiState,
-                        modifier = Modifier.padding(padding)
-                    )
-                }
+            } else if (uiState.error != null) {
+                ErrorMessage(
+                    message = uiState.error!!,
+                    onRetry = { viewModel.loadBadges() },
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(16.dp)
+                )
+            } else {
+                BadgesContent(
+                    uiState = uiState,
+                    modifier = Modifier.padding(padding)
+                )
             }
         }
     }
@@ -186,46 +174,46 @@ private fun BadgesContent(
         item {
             BadgeStatsCard(uiState.progress)
         }
-
+        item {
+            UnlockProgressCard(uiState.progress?.unlockedBadges ?: emptyList())
+        }
         item {
             StreakCard(uiState.progress)
         }
-
         if (uiState.unlockedBadges.isNotEmpty()) {
             item {
-                Text(
-                    "Unlocked (${uiState.unlockedBadges.size})",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF2F5233)
+                SectionHeader(
+                    title = "Unlocked",
+                    count = uiState.unlockedBadges.size,
+                    icon = "✅"
                 )
             }
             
             items(uiState.unlockedBadges) { badge ->
-                BadgeCard(
+                EnhancedBadgeCard(
                     badge = badge,
                     isUnlocked = true,
-                    progress = uiState.progress
+                    progress = uiState.progress,
+                    unlockedBadges = uiState.progress?.unlockedBadges ?: emptyList()
                 )
             }
         }
-
         if (uiState.lockedBadges.isNotEmpty()) {
             item {
                 Spacer(Modifier.height(8.dp))
-                Text(
-                    "Locked (${uiState.lockedBadges.size})",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF2F5233)
+                SectionHeader(
+                    title = "Locked",
+                    count = uiState.lockedBadges.size,
+                    icon = "🔒"
                 )
             }
             
             items(uiState.lockedBadges) { badge ->
-                BadgeCard(
+                EnhancedBadgeCard(
                     badge = badge,
                     isUnlocked = false,
-                    progress = uiState.progress
+                    progress = uiState.progress,
+                    unlockedBadges = uiState.progress?.unlockedBadges ?: emptyList()
                 )
             }
         }
@@ -393,146 +381,413 @@ private fun StreakCard(progress: UserProgress?) {
 }
 
 @Composable
-private fun BadgeCard(
+private fun SectionHeader(
+    title: String,
+    count: Int,
+    icon: String
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            icon,
+            style = MaterialTheme.typography.titleLarge
+        )
+        Text(
+            title,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF2F5233)
+        )
+        Surface(
+            color = Color(0xFF52796F).copy(alpha = 0.15f),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text(
+                count.toString(),
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                style = MaterialTheme.typography.labelLarge,
+                color = Color(0xFF2F5233),
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+private fun UnlockProgressCard(unlockedBadges: List<String>) {
+    val totalUnlockables = CustomizationUnlocks.allUnlockables.size
+    val unlockedCount = CustomizationUnlocks.getUnlockedItems(unlockedBadges).size
+    val progress = unlockedCount.toFloat() / totalUnlockables.toFloat()
+    
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White.copy(alpha = 0.95f)
+        ),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "🎨",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "Customization Unlocks",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF2F5233)
+                    )
+                }
+                Text(
+                    "$unlockedCount/$totalUnlockables",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF52796F)
+                )
+            }
+            
+            Spacer(Modifier.height(12.dp))
+            
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(10.dp)
+                    .clip(RoundedCornerShape(5.dp)),
+                color = Color(0xFF52796F),
+                trackColor = Color(0xFFE0E0E0)
+            )
+            
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                UnlockTypeChip(
+                    icon = "🌿",
+                    label = "Colors",
+                    count = CustomizationUnlocks.getUnlockedItemsByType(
+                        UnlockType.PLANT_COLOR,
+                        unlockedBadges
+                    ).size + 1,
+                    total = CustomizationUnlocks.getAllPlantColors().size
+                )
+                UnlockTypeChip(
+                    icon = "🏺",
+                    label = "Pots",
+                    count = CustomizationUnlocks.getUnlockedItemsByType(
+                        UnlockType.POT_COLOR,
+                        unlockedBadges
+                    ).size + 1,
+                    total = CustomizationUnlocks.getAllPotColors().size
+                )
+                UnlockTypeChip(
+                    icon = "🪴",
+                    label = "Styles",
+                    count = CustomizationUnlocks.getUnlockedItemsByType(
+                        UnlockType.POT_STYLE,
+                        unlockedBadges
+                    ).size + 1,
+                    total = CustomizationUnlocks.getAllPotStyles().size
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun UnlockTypeChip(
+    icon: String,
+    label: String,
+    count: Int,
+    total: Int
+) {
+    Surface(
+        color = Color(0xFF52796F).copy(alpha = 0.1f),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                icon,
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "$count/$total",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF2F5233)
+            )
+            Text(
+                label,
+                style = MaterialTheme.typography.labelSmall,
+                color = Color(0xFF757575)
+            )
+        }
+    }
+}
+
+@Composable
+private fun EnhancedBadgeCard(
     badge: Badge,
     isUnlocked: Boolean,
     progress: UserProgress?,
-    modifier: Modifier = Modifier
+    unlockedBadges: List<String>
 ) {
-    var isVisible by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(false) }
     
-    LaunchedEffect(Unit) {
-        isVisible = true
+    val unlocks = CustomizationUnlocks.allUnlockables.filter { 
+        it.requiredBadge == badge.id 
     }
     
-    AnimatedVisibility(
-        visible = isVisible,
-        enter = fadeIn() + scaleIn()
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .alpha(if (isUnlocked) 1f else 0.7f),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isUnlocked) {
+                Color.White.copy(alpha = 0.95f)
+            } else {
+                Color(0xFFF5F5F5).copy(alpha = 0.8f)
+            }
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isUnlocked) 4.dp else 2.dp
+        )
     ) {
-        Card(
-            modifier = modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = if (isUnlocked) {
-                    badge.color.copy(alpha = 0.15f)
-                } else {
-                    Color.LightGray.copy(alpha = 0.3f)
-                }
-            ),
-            elevation = CardDefaults.cardElevation(
-                defaultElevation = if (isUnlocked) 6.dp else 2.dp
-            ),
-            shape = RoundedCornerShape(12.dp)
+        Column(
+            modifier = Modifier.padding(16.dp)
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
             ) {
-                // Badge Icon
-                Box(
-                    modifier = Modifier
-                        .size(64.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (isUnlocked) badge.color.copy(alpha = 0.3f)
-                            else Color.Gray.copy(alpha = 0.2f)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (isUnlocked) {
-                        Text(
-                            badge.icon,
-                            style = MaterialTheme.typography.headlineLarge
-                        )
-                    } else {
-                        Icon(
-                            Icons.Default.Lock,
-                            contentDescription = "Locked",
-                            modifier = Modifier.size(32.dp),
-                            tint = Color.Gray
-                        )
-                    }
-                }
-                
-                Spacer(Modifier.width(16.dp))
-
-                Column(
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (isUnlocked) {
+                                    badge.color.copy(alpha = 0.2f)
+                                } else {
+                                    Color(0xFFE0E0E0)
+                                }
+                            ),
+                        contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            badge.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isUnlocked) Color(0xFF2F5233) else Color.Gray,
-                            modifier = Modifier.alpha(if (isUnlocked) 1f else 0.6f)
+                            if (isUnlocked) badge.icon else "🔒",
+                            style = MaterialTheme.typography.headlineMedium
                         )
-
+                    }
+                    
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                badge.name,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isUnlocked) Color(0xFF2F5233) else Color(0xFF757575)
+                            )
+                        }
+                        
+                        Spacer(Modifier.height(4.dp))
+                        
+                        Text(
+                            badge.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (isUnlocked) Color(0xFF666666) else Color(0xFF999999)
+                        )
+                        
+                        Spacer(Modifier.height(8.dp))
+                        
                         Surface(
-                            shape = RoundedCornerShape(4.dp),
-                            color = getRarityColor(badge.rarity).copy(alpha = 0.2f)
+                            color = getRarityColor(badge.rarity).copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
                                 badge.rarity.name,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = getRarityColor(badge.rarity),
                                 fontWeight = FontWeight.Bold
                             )
                         }
                     }
-                    
-                    Spacer(Modifier.height(4.dp))
-                    
-                    Text(
-                        badge.description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (isUnlocked) Color(0xFF52796F) else Color.Gray,
-                        modifier = Modifier.alpha(if (isUnlocked) 1f else 0.6f)
-                    )
+                }
 
-                    if (!isUnlocked && progress != null) {
-                        Spacer(Modifier.height(8.dp))
-                        val currentProgress = getBadgeProgress(badge, progress)
-                        val progressPercent = (currentProgress.toFloat() / badge.requirement.toFloat())
-                            .coerceIn(0f, 1f)
-                        
-                        if (badge.requirement > 1) {
-                            Column {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(
-                                        "$currentProgress / ${badge.requirement}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = Color.Gray
-                                    )
-                                    Text(
-                                        "${(progressPercent * 100).toInt()}%",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = Color.Gray,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                                Spacer(Modifier.height(4.dp))
-                                LinearProgressIndicator(
-                                    progress = progressPercent,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(6.dp)
-                                        .clip(RoundedCornerShape(3.dp)),
-                                    color = badge.color,
-                                    trackColor = Color.LightGray.copy(alpha = 0.3f)
-                                )
-                            }
+                if (unlocks.isNotEmpty()) {
+                    IconButton(
+                        onClick = { expanded = !expanded },
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            contentDescription = if (expanded) "Collapse" else "Expand",
+                            tint = Color(0xFF52796F)
+                        )
+                    }
+                }
+            }
+
+            if (!isUnlocked && progress != null) {
+                val currentValue = getBadgeProgress(badge, progress)
+                val progressPercent = (currentValue.toFloat() / badge.requirement.toFloat())
+                    .coerceIn(0f, 1f)
+                
+                if (progressPercent > 0f) {
+                    Spacer(Modifier.height(12.dp))
+                    Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                "Progress",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color(0xFF757575)
+                            )
+                            Text(
+                                "$currentValue / ${badge.requirement}",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = badge.color
+                            )
+                        }
+                        Spacer(Modifier.height(4.dp))
+                        LinearProgressIndicator(
+                            progress = { progressPercent },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(3.dp)),
+                            color = badge.color,
+                            trackColor = Color.LightGray.copy(alpha = 0.3f)
+                        )
+                    }
+                }
+            }
+
+            AnimatedVisibility(
+                visible = expanded && unlocks.isNotEmpty(),
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
+                Column {
+                    Spacer(Modifier.height(16.dp))
+                    Divider(color = Color(0xFFE0E0E0))
+                    Spacer(Modifier.height(16.dp))
+                    
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            if (isUnlocked) "🎁" else "🔒",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            if (isUnlocked) "Unlocks" else "Will Unlock",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isUnlocked) Color(0xFF52796F) else Color(0xFF757575)
+                        )
+                    }
+                    
+                    Spacer(Modifier.height(12.dp))
+                    
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(unlocks) { unlock ->
+                            UnlockRewardChip(
+                                unlock = unlock,
+                                isUnlocked = isUnlocked
+                            )
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun UnlockRewardChip(
+    unlock: UnlockableItem,
+    isUnlocked: Boolean
+) {
+    Surface(
+        color = if (isUnlocked) {
+            Color(0xFF52796F).copy(alpha = 0.15f)
+        } else {
+            Color(0xFFE0E0E0)
+        },
+        shape = RoundedCornerShape(12.dp),
+        border = if (isUnlocked) {
+            androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF52796F).copy(alpha = 0.3f))
+        } else null
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            if (unlock.icon.isNotEmpty()) {
+                Text(
+                    unlock.icon,
+                    style = MaterialTheme.typography.titleMedium
+                )
+            } else if (unlock.previewColor != null) {
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(unlock.previewColor)
+                        .border(1.dp, Color(0xFF2C2C2C), CircleShape)
+                )
+            }
+            
+            Column {
+                Text(
+                    unlock.name,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isUnlocked) Color(0xFF2F5233) else Color(0xFF757575)
+                )
+                Text(
+                    when (unlock.type) {
+                        UnlockType.POT_STYLE -> "Pot Style"
+                        UnlockType.POT_COLOR -> "Pot Color"
+                        UnlockType.PLANT_COLOR -> "Plant Color"
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (isUnlocked) Color(0xFF666666) else Color(0xFF999999)
+                )
             }
         }
     }
@@ -559,66 +814,49 @@ private fun getRarityColor(rarity: BadgeRarity): Color {
 }
 
 @Composable
-fun BadgeUnlockedNotification(
-    badge: Badge,
-    onDismiss: () -> Unit
+private fun ErrorMessage(
+    message: String,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        icon = {
-            Text(
-                badge.icon,
-                style = MaterialTheme.typography.displayLarge
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White.copy(alpha = 0.95f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Icon(
+                Icons.Default.Warning,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = Color(0xFFFF9800)
             )
-        },
-        title = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    "🎉 Badge Unlocked! 🎉",
-                    style = MaterialTheme.typography.titleLarge,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    badge.name,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = badge.color,
-                    textAlign = TextAlign.Center
-                )
-            }
-        },
-        text = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    badge.description,
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Spacer(Modifier.height(8.dp))
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = getRarityColor(badge.rarity).copy(alpha = 0.2f)
-                ) {
-                    Text(
-                        "${badge.rarity.name} BADGE",
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = getRarityColor(badge.rarity),
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        },
-        confirmButton = {
+            Text(
+                "Oops!",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                message,
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                color = Color(0xFF666666)
+            )
             Button(
-                onClick = onDismiss,
+                onClick = onRetry,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = badge.color
+                    containerColor = Color(0xFF52796F)
                 )
             ) {
-                Text("Awesome!")
+                Icon(Icons.Default.Refresh, null)
+                Spacer(Modifier.width(8.dp))
+                Text("Try Again")
             }
         }
-    )
+    }
 }
