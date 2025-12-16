@@ -283,18 +283,12 @@ fun PlantDetailScreen(
         }
 
         if (showAvatarCustomization && currentPlantForCustomization != null) {
-            val plantForAvatar = currentPlantForCustomization!!
-
-            AvatarCustomizationScreen(
-                currentConfig = plantForAvatar.avatarConfig,
-                plantName = plantForAvatar.commonName,
-                plant = plantForAvatar,
-                onSave = { newConfig ->
-                    val updatedPlant = plantForAvatar.copy(avatarConfig = newConfig)
-                    viewModel.updatePlant(updatedPlant)
+            GamifiedAvatarCustomizationScreen(
+                plantId = currentPlantForCustomization!!.plantId,
+                onNavigateBack = {
                     showAvatarCustomization = false
-                },
-                onBack = { showAvatarCustomization = false }
+                    viewModel.loadPlant()
+                }
             )
         }
 

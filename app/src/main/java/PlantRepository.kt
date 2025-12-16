@@ -8,6 +8,7 @@ import kotlinx.coroutines.tasks.await
 class PlantRepository {
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
+    private val progressRepo = ProgressRepository()
 
     private fun getPlantsCollection() =
         db.collection("users")
@@ -37,6 +38,12 @@ class PlantRepository {
             docRef.set(plantWithIds).await()
 
             Log.d("PlantRepo", "✅ Plant saved successfully!")
+
+            Log.d("PlantRepo", "Updating progress for new plant...")
+            val allPlants = getAllPlants().getOrNull() ?: emptyList()
+            progressRepo.initializeProgress(allPlants)
+            Log.d("PlantRepo", "✅ Progress updated! Badge check complete.")
+            
             Result.success(docRef.id)
         } catch (e: Exception) {
             Log.e("PlantRepo", "❌ Error saving plant", e)
@@ -44,7 +51,6 @@ class PlantRepository {
         }
     }
 
-    // get all plants for current user
     suspend fun getAllPlants(): Result<List<PlantProfile>> {
         return try {
             val userId = auth.currentUser?.uid
@@ -56,42 +62,31 @@ class PlantRepository {
             }
 
             val snapshot = getPlantsCollection().get().await()
-            Log.d("PlantRepo", "Retrieved ${snapshot.size()} plants")
+            val plants = snapshot.documents.mapNotNull { it.toObject(PlantProfile::class.java) }
 
-            val plants = snapshot.documents.mapNotNull {
-                it.toObject(PlantProfile::class.java)
-            }
-
-            Log.d("PlantRepo", "Successfully parsed ${plants.size} plants")
+            Log.d("PlantRepo", "Retrieved ${plants.size} plants")
             Result.success(plants)
         } catch (e: Exception) {
-            Log.e("PlantRepo", "❌ Error getting plants", e)
+            Log.e("PlantRepo", "❌ Error fetching plants", e)
             Result.failure(e)
         }
     }
 
-    // get a specific plant by ID
     suspend fun getPlant(plantId: String): Result<PlantProfile> {
         return try {
             Log.d("PlantRepo", "Getting plant: $plantId")
+            val snapshot = getPlantsCollection().document(plantId).get().await()
+            val plant = snapshot.toObject(PlantProfile::class.java)
+                ?: return Result.failure(Exception("Plant not found"))
 
-            val doc = getPlantsCollection().document(plantId).get().await()
-            val plant = doc.toObject(PlantProfile::class.java)
-
-            if (plant != null) {
-                Log.d("PlantRepo", "✅ Plant found: ${plant.commonName}")
-                Result.success(plant)
-            } else {
-                Log.e("PlantRepo", "❌ Plant not found")
-                Result.failure(Exception("Plant not found"))
-            }
+            Log.d("PlantRepo", "✅ Retrieved plant: ${plant.commonName}")
+            Result.success(plant)
         } catch (e: Exception) {
-            Log.e("PlantRepo", "❌ Error getting plant", e)
+            Log.e("PlantRepo", "❌ Error fetching plant", e)
             Result.failure(e)
         }
     }
 
-    // update an existing plant
     suspend fun updatePlant(plant: PlantProfile): Result<Unit> {
         return try {
             if (plant.plantId.isEmpty()) {
@@ -110,13 +105,19 @@ class PlantRepository {
         }
     }
 
-    // delete a plant
     suspend fun deletePlant(plantId: String): Result<Unit> {
         return try {
             Log.d("PlantRepo", "Deleting plant: $plantId")
             getPlantsCollection().document(plantId).delete().await()
 
             Log.d("PlantRepo", "✅ Plant deleted successfully")
+            
+            // UPDATE PROGRESS AFTER DELETION
+            Log.d("PlantRepo", "Updating progress after deletion...")
+            val allPlants = getAllPlants().getOrNull() ?: emptyList()
+            progressRepo.initializeProgress(allPlants)
+            Log.d("PlantRepo", "✅ Progress updated!")
+            
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e("PlantRepo", "❌ Error deleting plant", e)
@@ -124,7 +125,6 @@ class PlantRepository {
         }
     }
 
-    // update watering timestamp
     suspend fun waterPlant(plantId: String): Result<Unit> {
         return try {
             val currentTime = System.currentTimeMillis()
@@ -135,6 +135,11 @@ class PlantRepository {
                 .await()
 
             Log.d("PlantRepo", "✅ Plant watered successfully")
+            
+            // Record care action for badges and streaks
+            val allPlants = getAllPlants().getOrNull() ?: emptyList()
+            progressRepo.recordCareAction(CareActionType.WATER, allPlants)
+            
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e("PlantRepo", "❌ Error watering plant", e)
@@ -142,7 +147,6 @@ class PlantRepository {
         }
     }
 
-    // update fertilizing timestamp
     suspend fun fertilizePlant(plantId: String): Result<Unit> {
         return try {
             val currentTime = System.currentTimeMillis()
@@ -153,6 +157,10 @@ class PlantRepository {
                 .await()
 
             Log.d("PlantRepo", "✅ Plant fertilized successfully")
+
+            val allPlants = getAllPlants().getOrNull() ?: emptyList()
+            progressRepo.recordCareAction(CareActionType.FERTILIZE, allPlants)
+            
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e("PlantRepo", "❌ Error fertilizing plant", e)
@@ -160,7 +168,6 @@ class PlantRepository {
         }
     }
 
-    // update health status
     suspend fun updateHealthStatus(plantId: String, health: String): Result<Unit> {
         return try {
             Log.d("PlantRepo", "Updating health status for plant: $plantId to $health")

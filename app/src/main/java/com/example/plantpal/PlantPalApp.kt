@@ -21,6 +21,7 @@ import androidx.navigation.navArgument
 import com.example.plantpal.screens.profile.ProfileScreen
 import com.example.plantpal.screens.profile.SettingsScreen
 import com.example.plantpal.screens.profile.DeveloperSettingsScreen
+import com.example.plantpal.BadgesScreen
 import com.example.plantpal.screens.detail.PlantDetailScreenWrapper
 import androidx.work.WorkManager
 
@@ -66,6 +67,7 @@ fun PlantPalApp(
                     !currentRoute.startsWith("addPlant/") &&
                     currentRoute != "settings" &&
                     currentRoute != "developerSettings" &&
+                    currentRoute != "badges" &&
                     currentRoute != "avatarCustomization") {
 
                     NavigationBar(
@@ -153,7 +155,14 @@ fun PlantPalApp(
                 composable("profile") {
                     ProfileScreen(
                         onSignOut = onSignOut,
-                        onDeveloperSettings = { navController.navigate("developerSettings") }
+                        onDeveloperSettings = { navController.navigate("developerSettings") },
+                        onBadges = { navController.navigate("badges") }
+                    )
+                }
+
+                composable("badges") {
+                    BadgesScreen(
+                        onBack = { navController.popBackStack() }
                     )
                 }
 
@@ -227,7 +236,7 @@ object AvatarGenerator {
         val config: AvatarConfig,
         val confidence: Float,
         val matchedBy: String,
-        val suggestions: List<String> = emptyList() // Alternate suggestions if confidence is low
+        val suggestions: List<String> = emptyList()
     )
 
     fun generateAvatarForPlant(
