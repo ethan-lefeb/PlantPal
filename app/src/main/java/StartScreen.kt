@@ -2,17 +2,21 @@ package com.example.plantpal.screens.start
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.example.plantpal.ui.theme.ForestButton
+import com.example.plantpal.ui.theme.ForestGradientBalanced
+import com.example.plantpal.ui.theme.ForestPrimary
+import com.example.plantpal.ui.theme.ForestSecondaryText
 
 @Composable
 fun StartScreen(navController: NavHostController) {
@@ -32,11 +36,7 @@ fun StartScreenContent(
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFFB5E48C),
-                        Color(0xFFD9ED92),
-                        Color(0xFF99D98C)
-                    )
+                    colors = ForestGradientBalanced
                 )
             )
             .padding(16.dp)
@@ -50,7 +50,7 @@ fun StartScreenContent(
                 text = "Welcome to PlantPal!",
                 style = MaterialTheme.typography.headlineSmall.copy(
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF2F5233)
+                    color = ForestPrimary
                 ),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(bottom = 24.dp)
@@ -61,10 +61,10 @@ fun StartScreenContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
-                shape = MaterialTheme.shapes.medium,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF52796F))
+                shape = RoundedCornerShape(50),
+                colors = ButtonDefaults.buttonColors(containerColor = ForestButton)
             ) {
-                Text("Go to Login", color = Color.White)
+                Text("Go to Login", color = MaterialTheme.colorScheme.onPrimary)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -74,10 +74,10 @@ fun StartScreenContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
-                shape = MaterialTheme.shapes.medium,
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF52796F))
+                shape = RoundedCornerShape(50),
+                colors = ButtonDefaults.buttonColors(containerColor = ForestButton)
             ) {
-                Text("Create Account", color = Color.White)
+                Text("Create Account", color = MaterialTheme.colorScheme.onPrimary)
             }
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -85,7 +85,7 @@ fun StartScreenContent(
             Text(
                 text = "“Every plant you nurture helps you grow too.”",
                 style = MaterialTheme.typography.bodySmall.copy(
-                    color = Color(0xFF2F5233)
+                    color = ForestSecondaryText
                 ),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 16.dp)

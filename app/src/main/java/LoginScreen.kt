@@ -19,17 +19,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import com.example.plantpal.ui.theme.ForestPrimary
+import com.example.plantpal.ui.theme.ForestGradientBalanced
+import com.example.plantpal.ui.theme.ForestButton
+import com.example.plantpal.ui.theme.ForestSecondaryText
+import com.example.plantpal.ui.theme.ForestCardBackground
+import com.example.plantpal.ui.components.EntryButton
 
-// 🌲 Forest Breeze palette (tweaked)
-private val ForestPrimary = Color(0xFF264C2D) // text / icons
-private val ForestGradientBalanced = listOf(
-    Color(0xFFE0F7E9), // soft mint top
-    Color(0xFFC5F1D3), // pastel green mid
-    Color(0xFFAEE9C0)  // calm green bottom
-)
-
-private val ForestButton = Color(0xFF2E7D32)  // new button color (deep forest green)
-private val ForestSecondaryText = ForestPrimary.copy(alpha = 0.7f)
 
 @Composable
 fun LoginScreen(
@@ -115,45 +111,28 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Login Button (new color)
-            Button(
-                onClick = {
-                    if (email.isBlank() || password.isBlank()) {
-                        errorMessage = "Email and password are required."
-                        return@Button
-                    }
-
-                    isLoading = true
-                    errorMessage = null
-
-                    scope.launch {
-                        val result = AuthRepository.login(email.trim(), password)
-                        isLoading = false
-                        result
-                            .onSuccess { onSuccess() }
-                            .onFailure { e ->
-                                errorMessage = e.message ?: "Login failed"
-                            }
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                enabled = !isLoading,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = ForestButton
-                ),
-                shape = RoundedCornerShape(50)
+            EntryButton(
+                text = "ENTRY"
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        color = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                } else {
-                    Text("Log in", color = Color.White, fontWeight = FontWeight.SemiBold)
+                if (email.isBlank() || password.isBlank()) {
+                    errorMessage = "Email and password are required."
+                    return@EntryButton
+                }
+
+                isLoading = true
+                errorMessage = null
+
+                scope.launch {
+                    val result = AuthRepository.login(email.trim(), password)
+                    isLoading = false
+                    result
+                        .onSuccess { onSuccess() }
+                        .onFailure { e ->
+                            errorMessage = e.message ?: "Login failed"
+                        }
                 }
             }
+
 
             Spacer(modifier = Modifier.height(16.dp))
 

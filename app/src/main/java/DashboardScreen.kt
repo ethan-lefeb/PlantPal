@@ -32,6 +32,11 @@ fun DashboardScreen(
     val repo = remember { PlantRepository() }
     val progressRepo = remember { ProgressRepository() }
     
+    val plantRepo = remember { PlantRepository() }
+
+    val reminderRepo = remember { ReminderRepository() }
+    var customReminders by remember { mutableStateOf<List<CustomReminder>>(emptyList()) }
+
     var plants by remember { mutableStateOf<List<PlantProfile>>(emptyList()) }
     var progress by remember { mutableStateOf<UserProgress?>(null) }
     var isLoading by remember { mutableStateOf(true) }
@@ -53,6 +58,14 @@ fun DashboardScreen(
                 .onSuccess { progress = it }
                 .onFailure { /* Progress is optional, so just log */ }
             
+            plantRepo.getAllPlants()
+                .onSuccess { plants = it; error = null }
+                .onFailure { error = it.message }
+
+            reminderRepo.getReminders()
+                .onSuccess { customReminders = it }
+                .onFailure {  }
+
             isLoading = false
         }
     }
@@ -71,24 +84,30 @@ fun DashboardScreen(
     val healthyPlants = plantsWithHealth.count { it.second.overallHealth >= 0.75f }
     val warningPlants = plantsWithHealth.count { it.second.overallHealth in 0.45f..0.75f }
     val criticalPlants = plantsWithHealth.count { it.second.overallHealth < 0.45f }
-    
+
     val dueWater = plants.count { daysSince(it.lastWatered) >= it.wateringFrequency }
     val dueFert = plants.count { daysSince(it.lastFertilized) >= it.fertilizerFrequency }
 
     val urgentPlants = plantsWithHealth
-        .filter { (_, metrics) -> 
-            PlantHealthCalculator.getCareUrgency(metrics) >= 2 
+        .filter { (_, metrics) ->
+            PlantHealthCalculator.getCareUrgency(metrics) >= 2
         }
         .sortedByDescending { (_, metrics) -> PlantHealthCalculator.getCareUrgency(metrics) }
         .take(5)
 
     val upcomingWater = plantsWithHealth
-        .sortedBy { (plant, metrics) -> metrics.daysUntilWaterNeeded }
+        .sortedBy { (_, metrics) -> metrics.daysUntilWaterNeeded }
         .take(5)
 
     val overallHealth = if (plants.isNotEmpty()) {
         plantsWithHealth.map { it.second.overallHealth }.average().toFloat()
     } else 0f
+
+    val now = System.currentTimeMillis()
+    val dueCustomReminders = customReminders
+        .filter { it.isEnabled && it.nextFireAt <= now }
+        .sortedBy { it.nextFireAt }
+        .take(5)
 
     when {
         isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -97,17 +116,23 @@ fun DashboardScreen(
 
         error != null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("Couldn't load your plants.", color = MaterialTheme.colorScheme.error)
+                Text("Couldn’t load dashboard", color = MaterialTheme.colorScheme.error)
                 Spacer(Modifier.height(12.dp))
                 Button(onClick = {
                     scope.launch {
                         isLoading = true
-                        repo.getAllPlants()
+                        plantRepo.getAllPlants()
                             .onSuccess { plants = it; error = null }
                             .onFailure { error = it.message }
+
+                        reminderRepo.getReminders()
+                            .onSuccess { customReminders = it }
+
                         isLoading = false
                     }
-                }) { Text("Retry") }
+                }) {
+                    Text("Retry")
+                }
             }
         }
 
@@ -157,16 +182,16 @@ fun DashboardScreen(
                             label = "Need Water",
                             value = dueWater.toString(),
                             icon = "💧",
-                            color = if (dueWater > 0) MaterialTheme.colorScheme.tertiary 
-                                   else MaterialTheme.colorScheme.primary,
+                            color = if (dueWater > 0) MaterialTheme.colorScheme.tertiary
+                            else MaterialTheme.colorScheme.primary,
                             modifier = Modifier.weight(1f)
                         )
                         EnhancedStatCard(
                             label = "Need Food",
                             value = dueFert.toString(),
                             icon = "🌿",
-                            color = if (dueFert > 0) MaterialTheme.colorScheme.secondary 
-                                   else MaterialTheme.colorScheme.primary,
+                            color = if (dueFert > 0) MaterialTheme.colorScheme.secondary
+                            else MaterialTheme.colorScheme.primary,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -174,21 +199,21 @@ fun DashboardScreen(
 
                 if (total == 0) {
                     item {
-                        Spacer(Modifier.height(24.dp))
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface
-                            ),
-                            elevation = CardDefaults.cardElevation(4.dp),
-                            shape = MaterialTheme.shapes.medium
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 32.dp),
+                            contentAlignment = Alignment.Center
                         ) {
                             Column(
-                                Modifier.padding(24.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(24.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    .padding(24.dp)
                             ) {
                                 Text(
-                                    "Let's add your first plant 🌱",
+                                    "No plants yet 🌱",
                                     style = MaterialTheme.typography.titleLarge
                                 )
                                 Spacer(Modifier.height(8.dp))
@@ -198,8 +223,8 @@ fun DashboardScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Spacer(Modifier.height(16.dp))
-                                Button(onClick = onAddPlant) { 
-                                    Text("Add Your First Plant") 
+                                Button(onClick = onAddPlant) {
+                                    Text("Add Your First Plant")
                                 }
                             }
                         }
@@ -222,38 +247,42 @@ fun DashboardScreen(
                         }
                     }
 
-                    item {
-                        SectionHeader(
-                            title = "📅 Upcoming Care",
-                            action = "See All",
-                            onAction = onOpenLibrary
-                        )
+                    if (upcomingWater.isNotEmpty()) {
+                        item {
+                            SectionHeader(
+                                title = "📅 Upcoming Care",
+                                action = "See All",
+                                onAction = onOpenLibrary
+                            )
+                        }
+
+                        items(upcomingWater) { (plant, metrics) ->
+                            UpcomingCareCard(
+                                plant = plant,
+                                metrics = metrics,
+                                onClick = { onOpenPlant(plant.plantId) }
+                            )
+                        }
                     }
 
-                    items(upcomingWater) { (plant, metrics) ->
-                        UpcomingCareCard(
-                            plant = plant,
-                            metrics = metrics,
-                            onClick = { onOpenPlant(plant.plantId) }
-                        )
-                    }
+                    if (dueCustomReminders.isNotEmpty()) {
+                        item {
+                            SectionHeader(
+                                title = "⏰ Custom reminders",
+                                action = null
+                            )
+                        }
 
-                    item {
-                        Spacer(Modifier.height(8.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            OutlinedButton(
-                                modifier = Modifier.weight(1f),
-                                onClick = onOpenLibrary
-                            ) { 
-                                Text("View Library") 
-                            }
-
-                            Button(
-                                modifier = Modifier.weight(1f),
-                                onClick = onAddPlant
-                            ) { 
-                                Text("Add Plant") 
-                            }
+                        items(dueCustomReminders) { reminder ->
+                            CustomReminderDashboardCard(
+                                reminder = reminder,
+                                onClick = {
+                                    val plantId = reminder.plantId
+                                    if (!plantId.isNullOrBlank()) {
+                                        onOpenPlant(plantId)
+                                    }
+                                }
+                            )
                         }
                     }
                 }
@@ -281,72 +310,58 @@ private fun OverallHealthCard(
         Column(
             Modifier.padding(20.dp)
         ) {
+            Text(
+                "Overall Plant Health",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(8.dp))
+
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Column {
-                    Text(
-                        "Overall Garden Health",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        when {
-                            overallHealth >= 0.75f -> "Thriving! 🌟"
-                            overallHealth >= 0.6f -> "Doing well 😊"
-                            overallHealth >= 0.45f -> "Needs attention ⚠️"
-                            else -> "Needs urgent care 🚨"
-                        },
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-                
                 Box(
                     modifier = Modifier
-                        .size(80.dp)
+                        .size(56.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surface),
+                        .background(MaterialTheme.colorScheme.primary)
+                        .padding(12.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         "${(overallHealth * 100).toInt()}%",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = when {
-                            overallHealth >= 0.75f -> Color(0xFF4CAF50)
-                            overallHealth >= 0.45f -> Color(0xFFFFC107)
-                            else -> Color(0xFFF44336)
-                        }
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontWeight = FontWeight.Bold
                     )
                 }
-            }
-            
-            Spacer(Modifier.height(16.dp))
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                HealthStatusPill("😊 $healthyCount", Color(0xFF4CAF50))
-                HealthStatusPill("😟 $warningCount", Color(0xFFFFC107))
-                HealthStatusPill("😢 $criticalCount", Color(0xFFF44336))
+                Column {
+                    Text(
+                        "$healthyCount of $totalCount plants are thriving",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        HealthChip("Healthy", healthyCount, MaterialTheme.colorScheme.primary)
+                        HealthChip("Warning", warningCount, MaterialTheme.colorScheme.tertiary)
+                        HealthChip("Critical", criticalCount, MaterialTheme.colorScheme.error)
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun HealthStatusPill(text: String, color: Color) {
+private fun HealthChip(label: String, count: Int, color: Color) {
     Surface(
         shape = RoundedCornerShape(12.dp),
-        color = color.copy(alpha = 0.2f)
+        color = color.copy(alpha = 0.15f)
     ) {
         Text(
-            text = text,
+            text = "$label ($count)",
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium
@@ -374,13 +389,12 @@ private fun EnhancedStatCard(
             Text(icon, style = MaterialTheme.typography.headlineMedium)
             Spacer(Modifier.height(8.dp))
             Text(
-                value,
+                text = value,
                 style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = color
+                fontWeight = FontWeight.Bold
             )
             Text(
-                label,
+                text = label,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -478,17 +492,61 @@ private fun UpcomingCareCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        elevation = CardDefaults.cardElevation(2.dp)
+        elevation = CardDefaults.cardElevation(2.dp),
+        shape = MaterialTheme.shapes.medium
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            PlantAvatar(
-                avatarConfig = plant.avatarConfig,
-                health = metrics.healthStatus,
-                size = 50.dp,
-                animated = false
+            Text(
+                plant.commonName,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Water in ${metrics.daysUntilWaterNeeded} days",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+//custom reminders!
+@Composable
+private fun CustomReminderDashboardCard(
+    reminder: CustomReminder,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(2.dp),
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Column(
+            Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = reminder.title.ifBlank { "Reminder" },
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = reminder.message.ifBlank {
+                    reminder.plantName?.let { "For $it" } ?: "Custom plant task"
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {

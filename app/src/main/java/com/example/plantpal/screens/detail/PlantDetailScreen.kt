@@ -1,6 +1,11 @@
 package com.example.plantpal.screens.detail
 
 import android.annotation.SuppressLint
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -13,11 +18,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.snapshots.SnapshotStateList
-import kotlinx.coroutines.flow.collect
-import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.material3.Slider
+import kotlin.math.roundToInt
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -26,6 +34,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -37,6 +46,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+
 
 data class PlantDetailUiState(
     val plant: PlantProfile? = null,
@@ -52,7 +62,9 @@ class PlantDetailViewModel(private val plantId: String) : ViewModel() {
     private val _uiState = MutableStateFlow(PlantDetailUiState())
     val uiState: StateFlow<PlantDetailUiState> = _uiState.asStateFlow()
 
-    init { loadPlant() }
+    init {
+        loadPlant()
+    }
 
     fun loadPlant() {
         viewModelScope.launch {
@@ -72,6 +84,7 @@ class PlantDetailViewModel(private val plantId: String) : ViewModel() {
     fun updateHealthStatus(health: String) = perform("updating") {
         repository.updateHealthStatus(plantId, health)
     }
+
     fun updatePlant(updated: PlantProfile) =
         perform("saving") { repository.updatePlant(updated) }
 
@@ -89,7 +102,6 @@ class PlantDetailViewModel(private val plantId: String) : ViewModel() {
         }
     }
 }
-
 
 @Composable
 fun PlantDetailScreenWrapper(
@@ -112,7 +124,6 @@ fun PlantDetailScreenWrapper(
     )
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
@@ -121,23 +132,40 @@ fun PlantDetailScreen(
     onNavigateBack: () -> Unit,
     viewModel: PlantDetailViewModel
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiStateState = viewModel.uiState.collectAsState()
+    val uiState = uiStateState.value
 
     var showEditDialog by remember { mutableStateOf(false) }
     var showHealthDialog by remember { mutableStateOf(false) }
     var showAvatarCustomization by remember { mutableStateOf(false) }
     var currentPlantForCustomization by remember { mutableStateOf<PlantProfile?>(null) }
 
+    var showRemindersDialog by remember { mutableStateOf(false) }
+
+    var showScrollHint by remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        delay(2500)
+        showScrollHint = false
+    }
+
+    // Calculate health metrics for the plant
     val healthMetrics = remember(uiState.plant) {
         uiState.plant?.let { PlantHealthCalculator.calculateHealth(it) }
     }
 
     Box(
-        modifier = Modifier.fillMaxSize().background(
-            Brush.verticalGradient(
-                listOf(Color(0xFFB5E48C), Color(0xFFD9ED92), Color(0xFF99D98C))
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        Color(0xFFB5E48C),
+                        Color(0xFFD9ED92),
+                        Color(0xFF99D98C)
+                    )
+                )
             )
-        )
     ) {
         Scaffold(
             topBar = {
@@ -189,9 +217,11 @@ fun PlantDetailScreen(
                 uiState.error != null -> ErrorState(uiState.error!!, padding) {
                     viewModel.loadPlant()
                 }
+
                 uiState.plant != null -> {
-                    var currentPlant by remember(uiState.plant!!.plantId) { 
-                        mutableStateOf(uiState.plant!!) 
+                    val plantNonNull = uiState.plant!!
+                    var currentPlant by remember(plantNonNull.plantId) {
+                        mutableStateOf(plantNonNull)
                     }
 
                     LaunchedEffect(uiState.plant, uiState.actionInProgress) {
@@ -201,9 +231,9 @@ fun PlantDetailScreen(
                     }
 
                     currentPlantForCustomization = currentPlant
-                    
+
                     PlantDetailContent(
-                        plant = currentPlant,
+                        plant = plantNonNull,
                         healthMetrics = healthMetrics,
                         onWaterPlant = {
                             currentPlant = currentPlant.copy(
@@ -219,6 +249,7 @@ fun PlantDetailScreen(
                         },
                         onUpdateHealth = { showHealthDialog = true },
                         onCustomizeAvatar = { showAvatarCustomization = true },
+                        onEditReminders = { showRemindersDialog = true },
                         actionInProgress = uiState.actionInProgress,
                         modifier = Modifier.padding(padding)
                     )
@@ -226,9 +257,12 @@ fun PlantDetailScreen(
             }
         }
 
-        if (showEditDialog && uiState.plant != null) {
+        // Cache plant locally so Kotlin can smart-cast cleanly
+        val plant = uiState.plant
+
+        if (showEditDialog && plant != null) {
             EditPlantDialog(
-                plant = uiState.plant!!,
+                plant = plant,
                 onDismiss = { showEditDialog = false },
                 onSave = {
                     viewModel.updatePlant(it)
@@ -237,9 +271,9 @@ fun PlantDetailScreen(
             )
         }
 
-        if (showHealthDialog) {
+        if (showHealthDialog && plant != null) {
             HealthStatusDialog(
-                currentHealth = uiState.plant?.health ?: "healthy",
+                currentHealth = plant.health,
                 onDismiss = { showHealthDialog = false },
                 onSelect = {
                     viewModel.updateHealthStatus(it)
@@ -257,16 +291,57 @@ fun PlantDetailScreen(
                 }
             )
         }
+
+        if (showRemindersDialog && uiState.plant != null) {
+            PlantRemindersDialog(
+                plant = uiState.plant!!,
+                onDismiss = { showRemindersDialog = false }
+            )
+        }
+
+        AnimatedVisibility(
+            visible = showScrollHint && uiState.plant != null && !uiState.isLoading && uiState.error == null,
+            enter = fadeIn() + slideInVertically { it / 2 },
+            exit = fadeOut() + slideOutVertically { it / 2 },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 24.dp)
+        ) {
+            Surface(
+                shape = MaterialTheme.shapes.large,
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                tonalElevation = 6.dp
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Scroll to see care actions",
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                }
+            }
+        }
     }
 }
-
 
 @Composable
 private fun LoadingState(padding: PaddingValues) {
     Box(
-        Modifier.fillMaxSize().padding(padding),
+        Modifier
+            .fillMaxSize()
+            .padding(padding),
         contentAlignment = Alignment.Center
-    ) { CircularProgressIndicator() }
+    ) {
+        CircularProgressIndicator()
+    }
 }
 
 @Composable
@@ -276,7 +351,9 @@ private fun ErrorState(
     onRetry: () -> Unit
 ) {
     Box(
-        Modifier.fillMaxSize().padding(padding),
+        Modifier
+            .fillMaxSize()
+            .padding(padding),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -288,7 +365,6 @@ private fun ErrorState(
     }
 }
 
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PlantDetailContent(
@@ -298,6 +374,7 @@ fun PlantDetailContent(
     onFertilizePlant: () -> Unit,
     onUpdateHealth: () -> Unit,
     onCustomizeAvatar: () -> Unit = {},
+    onEditReminders: () -> Unit = {},
     actionInProgress: String?,
     modifier: Modifier = Modifier
 ) {
@@ -315,7 +392,7 @@ fun PlantDetailContent(
     )
     val particleSystem = rememberParticleSystem()
     val scope = rememberCoroutineScope()
-    
+
     val handleWater: () -> Unit = {
         scope.launch {
             if (pagerState.currentPage != 0) {
@@ -330,7 +407,7 @@ fun PlantDetailContent(
         }
         Unit
     }
-    
+
     val handleFertilize: () -> Unit = {
         scope.launch {
             if (pagerState.currentPage != 0) {
@@ -346,7 +423,7 @@ fun PlantDetailContent(
         }
         Unit
     }
-    
+
     Column(
         modifier = modifier.fillMaxSize()
     ) {
@@ -418,7 +495,7 @@ fun PlantDetailContent(
                     InfoRow("Sunlight", plant.sunlight)
                     InfoRow("Water Frequency", "Every ${plant.wateringFrequency} days")
                     InfoRow("Fertilize Frequency", "Every ${plant.fertilizerFrequency} days")
-                    
+
                     if (plant.notes.isNotEmpty()) {
                         Divider(modifier = Modifier.padding(vertical = 8.dp))
                         Text(
@@ -435,6 +512,15 @@ fun PlantDetailContent(
             }
 
             HealthStatusSection(plant, onUpdateHealth)
+
+            Spacer(Modifier.height(16.dp))
+
+            OutlinedButton(
+                onClick = onEditReminders,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Custom reminders")
+            }
 
             Spacer(Modifier.height(16.dp))
 
@@ -487,7 +573,9 @@ private fun PlantImageWithAvatar(
                                     size = 200.dp,
                                     animated = true,
                                     animationController = animationController,
-                                    modifier = Modifier.fillMaxSize(0.8f).align(Alignment.Center)
+                                    modifier = Modifier
+                                        .fillMaxSize(0.8f)
+                                        .align(Alignment.Center)
                                 )
                                 ParticleEffect(
                                     particleSystem = particleSystem,
@@ -495,6 +583,7 @@ private fun PlantImageWithAvatar(
                                 )
                             }
                         }
+
                         1 -> {
                             if (plant.photoUrl.isNotEmpty()) {
                                 Image(
@@ -741,7 +830,6 @@ fun EditPlantDialog(
     )
 }
 
-
 @Composable
 fun HealthStatusDialog(
     currentHealth: String,
@@ -774,4 +862,425 @@ fun HealthStatusDialog(
             TextButton(onClick = onDismiss) { Text("Close") }
         }
     )
+}
+
+@Composable
+private fun PlantRemindersDialog(
+    plant: PlantProfile,
+    onDismiss: () -> Unit
+) {
+    val reminderRepo = remember { ReminderRepository() }
+    val scope = rememberCoroutineScope()
+
+    var reminders by remember { mutableStateOf<List<CustomReminder>>(emptyList()) }
+    var loading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    var showAddDialog by remember { mutableStateOf(false) }
+    var editingReminder by remember { mutableStateOf<CustomReminder?>(null) }
+
+    // Initial load: use existing getReminders() and filter by plantId
+    LaunchedEffect(plant.plantId) {
+        loading = true
+        errorMessage = null
+        val result = reminderRepo.getReminders()
+        result
+            .onSuccess { all ->
+                reminders = all.filter { it.plantId == plant.plantId }
+            }
+            .onFailure { e ->
+                errorMessage = e.message ?: "Failed to load reminders."
+            }
+        loading = false
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Reminders for ${plant.commonName}") },
+        text = {
+            when {
+                loading -> {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+
+                errorMessage != null -> {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "Couldn't load reminders.",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = errorMessage!!,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
+                }
+
+                reminders.isEmpty() -> {
+                    Text("No custom reminders for this plant yet.")
+                }
+
+                else -> {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        reminders.sortedBy { it.nextFireAt }.forEach { reminder ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                                )
+                            ) {
+                                Column(Modifier.padding(12.dp)) {
+                                    Text(
+                                        reminder.title.ifBlank { "Reminder" },
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    if (reminder.message.isNotBlank()) {
+                                        Text(
+                                            reminder.message,
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                    }
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(
+                                        "Next: ${formatTimestamp(reminder.nextFireAt)}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+
+                                    Spacer(Modifier.height(8.dp))
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        OutlinedButton(
+                                            modifier = Modifier.weight(1f),
+                                            onClick = { editingReminder = reminder }
+                                        ) {
+                                            Text("Edit")
+                                        }
+                                        OutlinedButton(
+                                            modifier = Modifier.weight(1f),
+                                            onClick = {
+                                                scope.launch {
+                                                    reminderRepo.deleteReminder(reminder.id)
+                                                        .onSuccess {
+                                                            reminders = reminders.filter { it.id != reminder.id }
+                                                        }
+                                                        .onFailure { e ->
+                                                            errorMessage = e.message
+                                                                ?: "Failed to delete reminder."
+                                                        }
+                                                }
+                                            },
+                                            colors = ButtonDefaults.outlinedButtonColors(
+                                                contentColor = MaterialTheme.colorScheme.error
+                                            )
+                                        ) {
+                                            Text("Delete")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { showAddDialog = true }) {
+                Text("Add reminder")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        }
+    )
+
+    // Add dialog
+    if (showAddDialog) {
+        AddReminderDialog(
+            plant = plant,
+            onDismiss = { showAddDialog = false },
+            onSave = { draft ->
+                scope.launch {
+                    val result = reminderRepo.createReminder(draft)
+                    result
+                        .onSuccess { id ->
+                            val saved = draft.copy(
+                                id = id,
+                                userId = plant.userId
+                            )
+                            reminders = reminders + saved
+                            showAddDialog = false
+                        }
+                        .onFailure { e ->
+                            errorMessage = e.message ?: "Failed to save reminder."
+                        }
+                }
+            }
+        )
+    }
+
+    editingReminder?.let { reminder ->
+        EditReminderDialog(
+            initial = reminder,
+            onDismiss = { editingReminder = null },
+            onSave = { updated ->
+                scope.launch {
+                    reminderRepo.updateReminder(updated)
+                        .onSuccess {
+                            reminders = reminders.map { if (it.id == updated.id) updated else it }
+                            editingReminder = null
+                        }
+                        .onFailure { e ->
+                            errorMessage = e.message ?: "Failed to update reminder."
+                        }
+                }
+            }
+        )
+    }
+}
+
+
+@Composable
+private fun AddReminderDialog(
+    plant: PlantProfile,
+    onDismiss: () -> Unit,
+    onSave: (CustomReminder) -> Unit
+) {
+    var title by remember { mutableStateOf("") }
+    var message by remember { mutableStateOf("") }
+    var hour by remember { mutableStateOf(9) }
+    var minute by remember { mutableStateOf(0) }
+    var repeatDays by remember { mutableStateOf(7) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add Reminder") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Title") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = message,
+                    onValueChange = { message = it },
+                    label = { Text("Message") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                TimePicker(
+                    hour = hour,
+                    minute = minute,
+                    onChange = { h, m ->
+                        hour = h
+                        minute = m
+                    }
+                )
+
+                OutlinedTextField(
+                    value = repeatDays.toString(),
+                    onValueChange = { value ->
+                        repeatDays = value.toIntOrNull()?.coerceAtLeast(1) ?: 1
+                    },
+                    label = { Text("Repeat interval (days)") }
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = title.isNotBlank(),
+                onClick = {
+                    val nextFire = computeNextFireAt(hour, minute)
+                    val draft = CustomReminder(
+                        id = "", // filled in by repo
+                        userId = plant.userId,
+                        plantId = plant.plantId,
+                        plantName = plant.commonName,
+                        title = title,
+                        message = message,
+                        nextFireAt = nextFire,
+                        repeatIntervalDays = repeatDays
+                    )
+                    onSave(draft)
+                }
+            ) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+}
+
+
+@Composable
+private fun EditReminderDialog(
+    initial: CustomReminder,
+    onDismiss: () -> Unit,
+    onSave: (CustomReminder) -> Unit
+) {
+    var title by remember { mutableStateOf(initial.title) }
+    var message by remember { mutableStateOf(initial.message) }
+
+    val cal = remember(initial.nextFireAt) {
+        java.util.Calendar.getInstance().apply { timeInMillis = initial.nextFireAt }
+    }
+    var hour by remember { mutableStateOf(cal.get(java.util.Calendar.HOUR_OF_DAY)) }
+    var minute by remember { mutableStateOf(cal.get(java.util.Calendar.MINUTE)) }
+    var repeatDays by remember { mutableStateOf(initial.repeatIntervalDays ?: 1) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Reminder") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Title") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = message,
+                    onValueChange = { message = it },
+                    label = { Text("Message") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                TimePicker(
+                    hour = hour,
+                    minute = minute,
+                    onChange = { h, m ->
+                        hour = h
+                        minute = m
+                    }
+                )
+
+                OutlinedTextField(
+                    value = repeatDays.toString(),
+                    onValueChange = { value ->
+                        repeatDays = value.toIntOrNull()?.coerceAtLeast(1) ?: 1
+                    },
+                    label = { Text("Repeat interval (days)") }
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = title.isNotBlank(),
+                onClick = {
+                    val newFire = computeNextFireAt(hour, minute)
+                    onSave(
+                        initial.copy(
+                            title = title,
+                            message = message,
+                            nextFireAt = newFire,
+                            repeatIntervalDays = repeatDays
+                        )
+                    )
+                }
+            ) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+}
+
+@Composable
+private fun TimePickerRow(
+    hour: Int,
+    minute: Int,
+    onChange: (Int, Int) -> Unit
+) {
+    TimePicker(
+        hour = hour,
+        minute = minute,
+        onChange = onChange
+    )
+}
+
+
+@Composable
+private fun TimePicker(
+    hour: Int,
+    minute: Int,
+    onChange: (Int, Int) -> Unit
+) {
+    // Convert current time to "minutes since midnight"
+    val initialMinutes = (hour.coerceIn(0, 23) * 60) + minute.coerceIn(0, 59)
+
+    var sliderValue by remember(hour, minute) {
+        mutableStateOf(initialMinutes.toFloat())
+    }
+    val clamped = sliderValue.coerceIn(0f, (24 * 60 - 1).toFloat())
+    val totalMinutes = clamped.roundToInt()
+    val displayHour = totalMinutes / 60
+    val displayMinute = totalMinutes % 60
+    LaunchedEffect(displayHour, displayMinute) {
+        onChange(displayHour, displayMinute)
+    }
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = String.format("%02d:%02d", displayHour, displayMinute),
+            style = MaterialTheme.typography.titleMedium
+        )
+
+        Slider(
+            value = clamped,
+            onValueChange = { newValue ->
+                sliderValue = newValue
+            },
+            valueRange = 0f..(24 * 60 - 1).toFloat(),
+            steps = (24 * 60 - 2)
+        )
+
+        Text(
+            text = "Drag to set time of day",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+
+private fun computeNextFireAt(hour: Int, minute: Int): Long {
+    val cal = java.util.Calendar.getInstance().apply {
+        set(java.util.Calendar.SECOND, 0)
+        set(java.util.Calendar.MILLISECOND, 0)
+        set(java.util.Calendar.HOUR_OF_DAY, hour.coerceIn(0, 23))
+        set(java.util.Calendar.MINUTE, minute.coerceIn(0, 59))
+
+        if (timeInMillis <= System.currentTimeMillis()) {
+            add(java.util.Calendar.DAY_OF_YEAR, 1)
+        }
+    }
+    return cal.timeInMillis
+}
+
+private fun formatTimestamp(timestamp: Long): String {
+    val formatter = java.text.SimpleDateFormat("MMM d, yyyy h:mm a")
+    return formatter.format(java.util.Date(timestamp))
 }

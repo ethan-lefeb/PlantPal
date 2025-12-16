@@ -503,7 +503,7 @@ private fun CareRow(label: String, dateLabel: String, daysSince: Int) {
 }
 
 @Composable
-private fun EditPlantDialog(
+fun EditPlantDialog(
     plant: PlantProfile,
     saving: Boolean,
     onDismiss: () -> Unit,
