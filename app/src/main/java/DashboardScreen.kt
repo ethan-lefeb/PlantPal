@@ -32,8 +32,6 @@ fun DashboardScreen(
     val repo = remember { PlantRepository() }
     val progressRepo = remember { ProgressRepository() }
     
-    val plantRepo = remember { PlantRepository() }
-
     val reminderRepo = remember { ReminderRepository() }
     var customReminders by remember { mutableStateOf<List<CustomReminder>>(emptyList()) }
 
@@ -57,10 +55,6 @@ fun DashboardScreen(
             progressResult
                 .onSuccess { progress = it }
                 .onFailure { /* Progress is optional, so just log */ }
-            
-            plantRepo.getAllPlants()
-                .onSuccess { plants = it; error = null }
-                .onFailure { error = it.message }
 
             reminderRepo.getReminders()
                 .onSuccess { customReminders = it }
@@ -121,7 +115,7 @@ fun DashboardScreen(
                 Button(onClick = {
                     scope.launch {
                         isLoading = true
-                        plantRepo.getAllPlants()
+                        repo.getAllPlants()
                             .onSuccess { plants = it; error = null }
                             .onFailure { error = it.message }
 
@@ -323,18 +317,41 @@ private fun OverallHealthCard(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(56.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary)
-                        .padding(12.dp),
+                        .size(64.dp)
+                        .background(
+                            color = when {
+                                overallHealth >= 0.75f -> Color(0xFF4CAF50).copy(alpha = 0.2f)
+                                overallHealth >= 0.45f -> Color(0xFFFFC107).copy(alpha = 0.2f)
+                                else -> Color(0xFFF44336).copy(alpha = 0.2f)
+                            },
+                            shape = CircleShape
+                        )
+                        .clip(CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        "${(overallHealth * 100).toInt()}%",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            "${(overallHealth * 100).toInt()}%",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = when {
+                                overallHealth >= 0.75f -> Color(0xFF4CAF50)
+                                overallHealth >= 0.45f -> Color(0xFFFFC107)
+                                else -> Color(0xFFF44336)
+                            },
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            "Health",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = when {
+                                overallHealth >= 0.75f -> Color(0xFF4CAF50)
+                                overallHealth >= 0.45f -> Color(0xFFFFC107)
+                                else -> Color(0xFFF44336)
+                            }
+                        )
+                    }
                 }
 
                 Column {
@@ -499,17 +516,68 @@ private fun UpcomingCareCard(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                plant.commonName,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
+            PlantAvatar(
+                avatarConfig = plant.avatarConfig,
+                health = metrics.healthStatus,
+                size = 50.dp,
+                animated = false
             )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                "Water in ${metrics.daysUntilWaterNeeded} days",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    plant.commonName,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    when {
+                        metrics.daysUntilWaterNeeded <= 0 -> "💧 Water now"
+                        metrics.daysUntilWaterNeeded == 1 -> "💧 Water in 1 day"
+                        else -> "💧 Water in ${metrics.daysUntilWaterNeeded} days"
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .size(60.dp)
+                    .background(
+                        color = when {
+                            metrics.overallHealth >= 0.75f -> Color(0xFF4CAF50).copy(alpha = 0.1f)
+                            metrics.overallHealth >= 0.45f -> Color(0xFFFFC107).copy(alpha = 0.1f)
+                            else -> Color(0xFFF44336).copy(alpha = 0.1f)
+                        },
+                        shape = CircleShape
+                    )
+                    .clip(CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        "${(metrics.overallHealth * 100).toInt()}%",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = when {
+                            metrics.overallHealth >= 0.75f -> Color(0xFF4CAF50)
+                            metrics.overallHealth >= 0.45f -> Color(0xFFFFC107)
+                            else -> Color(0xFFF44336)
+                        }
+                    )
+                    Text(
+                        "Health",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = when {
+                            metrics.overallHealth >= 0.75f -> Color(0xFF4CAF50)
+                            metrics.overallHealth >= 0.45f -> Color(0xFFFFC107)
+                            else -> Color(0xFFF44336)
+                        }
+                    )
+                }
+            }
         }
     }
 }
@@ -548,44 +616,6 @@ private fun CustomReminderDashboardCard(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    plant.commonName,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    when {
-                        metrics.daysUntilWaterNeeded <= 0 -> "💧 Water now"
-                        metrics.daysUntilWaterNeeded == 1 -> "💧 Water in 1 day"
-                        else -> "💧 Water in ${metrics.daysUntilWaterNeeded} days"
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-            Surface(
-                shape = CircleShape,
-                color = when {
-                    metrics.overallHealth >= 0.75f -> Color(0xFF4CAF50).copy(alpha = 0.2f)
-                    metrics.overallHealth >= 0.45f -> Color(0xFFFFC107).copy(alpha = 0.2f)
-                    else -> Color(0xFFF44336).copy(alpha = 0.2f)
-                }
-            ) {
-                Text(
-                    "${(metrics.overallHealth * 100).toInt()}%",
-                    modifier = Modifier.padding(8.dp),
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Bold,
-                    color = when {
-                        metrics.overallHealth >= 0.75f -> Color(0xFF4CAF50)
-                        metrics.overallHealth >= 0.45f -> Color(0xFFFFC107)
-                        else -> Color(0xFFF44336)
-                    }
-                )
-            }
         }
     }
 }
