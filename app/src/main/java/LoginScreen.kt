@@ -112,7 +112,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             EntryButton(
-                text = "ENTRY"
+                text = "Login"
             ) {
                 if (email.isBlank() || password.isBlank()) {
                     errorMessage = "Email and password are required."

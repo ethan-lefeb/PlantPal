@@ -24,6 +24,8 @@ import com.example.plantpal.screens.profile.DeveloperSettingsScreen
 import com.example.plantpal.BadgesScreen
 import com.example.plantpal.screens.detail.PlantDetailScreenWrapper
 import androidx.work.WorkManager
+import com.example.plantpal.ui.theme.ForestGradientBalanced
+import com.example.plantpal.ui.components.EntryButton
 
 data class Tab(val route: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
 
@@ -46,13 +48,7 @@ fun PlantPalApp(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFFB5E48C),
-                        Color(0xFFD9ED92),
-                        Color(0xFF99D98C)
-                    )
-                )
+                Brush.verticalGradient(ForestGradientBalanced)
             )
     ) {
         Scaffold(

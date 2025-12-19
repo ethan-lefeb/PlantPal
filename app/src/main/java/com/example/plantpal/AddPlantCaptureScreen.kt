@@ -62,6 +62,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.io.File
 import java.util.UUID
+import androidx.compose.ui.tooling.preview.Preview
+import com.example.plantpal.ui.theme.ForestGradientBalanced
+import com.example.plantpal.ui.components.EntryButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,13 +81,7 @@ fun AddPlantCaptureScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                Brush.verticalGradient(
-                    listOf(
-                        Color(0xFFB5E48C),
-                        Color(0xFFD9ED92),
-                        Color(0xFF99D98C)
-                    )
-                )
+                Brush.verticalGradient(ForestGradientBalanced)
             )
     ) {
         Scaffold(
@@ -679,3 +676,16 @@ fun DropdownMenuBox(
         }
     }
 }
+
+@Preview(showBackground = true)
+@Composable
+fun AddPlantManualModePreview() {
+    MaterialTheme {
+        AddPlantManualMode(
+            currentUserId = "preview-user",
+            snackbarHostState = SnackbarHostState(),
+            onSaved = {}
+        )
+    }
+}
+

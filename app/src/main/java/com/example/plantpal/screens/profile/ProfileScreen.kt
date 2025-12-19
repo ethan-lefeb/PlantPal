@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.example.plantpal.ui.theme.ForestGradientBalanced
+import com.example.plantpal.ui.components.EntryButton
 
 
 @Composable
@@ -25,13 +27,7 @@ fun ProfileScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                Brush.verticalGradient(
-                    listOf(
-                        Color(0xFFB5E48C),
-                        Color(0xFFD9ED92),
-                        Color(0xFF99D98C)
-                    )
-                )
+                Brush.verticalGradient(ForestGradientBalanced)
             )
             .padding(24.dp)
     ) {

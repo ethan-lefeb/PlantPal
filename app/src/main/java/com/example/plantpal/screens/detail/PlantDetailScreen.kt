@@ -46,6 +46,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.example.plantpal.ui.theme.ForestGradientBalanced
 
 
 data class PlantDetailUiState(
@@ -158,13 +159,7 @@ fun PlantDetailScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                Brush.verticalGradient(
-                    listOf(
-                        Color(0xFFB5E48C),
-                        Color(0xFFD9ED92),
-                        Color(0xFF99D98C)
-                    )
-                )
+                Brush.verticalGradient(ForestGradientBalanced)
             )
     ) {
         Scaffold(

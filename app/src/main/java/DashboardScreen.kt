@@ -21,6 +21,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import kotlin.math.max
+import com.example.plantpal.ui.theme.ForestGradientBalanced
+import com.example.plantpal.ui.components.EntryButton
 
 @Composable
 fun DashboardScreen(
@@ -217,9 +219,11 @@ fun DashboardScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Spacer(Modifier.height(16.dp))
-                                Button(onClick = onAddPlant) {
-                                    Text("Add Your First Plant")
-                                }
+
+                                EntryButton(
+                                    text = "Add Your First Plant",
+                                    onClick = onAddPlant
+                                )
                             }
                         }
                     }

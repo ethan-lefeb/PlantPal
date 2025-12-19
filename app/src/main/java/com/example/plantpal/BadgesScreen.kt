@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.example.plantpal.ui.theme.ForestGradientBalanced
 
 
 data class BadgesUiState(
@@ -129,13 +130,8 @@ fun BadgesScreen(
         Box(modifier = Modifier
             .fillMaxSize()
             .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFFB5E48C),
-                        Color(0xFFD9ED92),
-                        Color(0xFF99D98C)
-                    )
-                )
+                Brush.verticalGradient(ForestGradientBalanced)
+
             )
         ) {
             if (uiState.isLoading) {
