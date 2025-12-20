@@ -11,6 +11,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.core.app.ActivityCompat
 import androidx.navigation.NavType
@@ -38,7 +39,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Request permissions for notifications (Android 13+)
+        // 🔔 Notification permission (Android 13+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val permissionCheck = ActivityCompat.checkSelfPermission(
                 this, Manifest.permission.POST_NOTIFICATIONS
@@ -48,23 +49,18 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Save FCM token when available
+        // 🔑 Save FCM token
         FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
             val userId = AuthRepository.currentUserId()
             if (userId != null) {
                 saveFcmTokenToFirestore(userId, token)
-            } else {
-                println("⚠️ Token received but user not logged in yet: $token")
             }
         }
 
         setContent {
             PlantPalTheme {
-                val startDestination = if (AuthRepository.currentUserId() != null) {
-                    "home"
-                } else {
-                    "start"
-                }
+                val startDestination =
+                    if (AuthRepository.currentUserId() != null) "home" else "start"
 
                 Scaffold { innerPadding ->
                     AppNavigation(
@@ -78,67 +74,89 @@ class MainActivity : ComponentActivity() {
 
     private fun saveFcmTokenToFirestore(userId: String, token: String) {
         val db = FirebaseFirestore.getInstance()
-        val userRef = db.collection("users").document(userId)
-        userRef
+        db.collection("users")
+            .document(userId)
             .set(mapOf("fcmToken" to token), SetOptions.merge())
-            .addOnSuccessListener {
-                println("✅ Token saved for user: $userId")
-            }
-            .addOnFailureListener { e ->
-                println("⚠️ Failed to save FCM token: ${e.message}")
-            }
     }
 }
 
 @Composable
-fun AppNavigation(modifier: Modifier = Modifier, startDestination: String = "start") {
+fun AppNavigation(
+    modifier: Modifier = Modifier,
+    startDestination: String = "start"
+) {
     val navController = rememberNavController()
-    val currentUserId = AuthRepository.currentUserId()
 
     NavHost(
         navController = navController,
         startDestination = startDestination,
         modifier = modifier
     ) {
-        composable("start") { StartScreen(navController) }
 
+        // 🌱 Start
+        composable("start") {
+            StartScreen(navController)
+        }
+
+        // 🔐 Login
         composable("login") {
             LoginScreen(
                 onSuccess = {
-                    navController.navigate("home") { popUpTo("login") { inclusive = true } }
+                    navController.navigate("home") {
+                        popUpTo("login") { inclusive = true }
+                    }
                 },
-                onNavigateToSignup = { navController.navigate("signup") }
+                onNavigateToSignup = {
+                    navController.navigate("signup")
+                }
             )
         }
 
+        // ✍️ Signup
         composable("signup") {
             AccountCreationScreen(
                 onSuccess = {
-                    navController.navigate("home") { popUpTo("signup") { inclusive = true } }
+                    navController.navigate("home") {
+                        popUpTo("signup") { inclusive = true }
+                    }
                 },
-                onNavigateToLogin = { navController.navigate("login") }
+                onNavigateToLogin = {
+                    navController.navigate("login")
+                }
             )
         }
 
+        // 🏡 Home (ROOT SCREEN)
         composable("home") {
-            if (currentUserId == null) {
-                navController.navigate("login") { popUpTo("home") { inclusive = true } }
+            val userId = AuthRepository.currentUserId()
+
+            if (userId == null) {
+                LaunchedEffect(Unit) {
+                    navController.navigate("login") {
+                        popUpTo("home") { inclusive = true }
+                    }
+                }
             } else {
                 PlantPalApp(
-                    currentUserId = currentUserId,
+                    currentUserId = userId,
                     onSignOut = {
                         AuthRepository.signOut()
-                        navController.navigate("login") { popUpTo("home") { inclusive = true } }
+                        navController.navigate("login") {
+                            popUpTo("home") { inclusive = true }
+                        }
                     }
                 )
             }
         }
 
+        // 🌿 Plant Detail (child of Home)
         composable(
             route = "plantDetail/{plantId}",
             arguments = listOf(navArgument("plantId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val plantId = backStackEntry.arguments?.getString("plantId") ?: return@composable
+            val plantId =
+                backStackEntry.arguments?.getString("plantId") ?: return@composable
+
             PlantDetailScreenWrapper(
                 plantId = plantId,
                 onBack = { navController.popBackStack() }
@@ -146,3 +164,4 @@ fun AppNavigation(modifier: Modifier = Modifier, startDestination: String = "sta
         }
     }
 }
+
