@@ -449,6 +449,12 @@ fun PlantDetailContent(
                 Text("🎨 Customize Avatar")
             }
 
+            Spacer(Modifier.height(16.dp))
+
+            CareActionsSection(actionInProgress, handleWater, handleFertilize)
+
+            Spacer(Modifier.height(32.dp))
+
             if (healthMetrics != null) {
                 HealthMetricsCard(
                     plant = plant,
@@ -491,6 +497,39 @@ fun PlantDetailContent(
                     InfoRow("Water Frequency", "Every ${plant.wateringFrequency} days")
                     InfoRow("Fertilize Frequency", "Every ${plant.fertilizerFrequency} days")
 
+                    LaunchedEffect(plant.careInfo) {
+                        println("🌿 Plant Data:")
+                        println("  careLevel: '${plant.careInfo.careLevel}'")
+                        println("  growthRate: '${plant.careInfo.growthRate}'")
+                        println("  maintenance: '${plant.careInfo.maintenance}'")
+                        println("  droughtTolerant: ${plant.careInfo.droughtTolerant}")
+                        println("  indoor: ${plant.careInfo.indoor}")
+                        println("  poisonousToPets: ${plant.careInfo.poisonousToPets}")
+                        println("  poisonousToHumans: ${plant.careInfo.poisonousToHumans}")
+                    }
+
+                    if (plant.careInfo.careLevel.isNotBlank()) {
+                        InfoRow("Care Level", plant.careInfo.careLevel.replaceFirstChar { it.uppercase() })
+                    }
+
+                    if (plant.careInfo.growthRate.isNotBlank()) {
+                        InfoRow("Growth Rate", plant.careInfo.growthRate.replaceFirstChar { it.uppercase() })
+                    }
+
+                    if (plant.careInfo.poisonousToPets) {
+                        InfoRow("Pet Safe", "⚠️ No - Toxic to pets")
+                    } else {
+                        InfoRow("Pet Safe", "✓ Yes - Safe for pets")
+                    }
+
+                    if (plant.careInfo.indoor) {
+                        InfoRow("Indoor Plant", "Yes ✓")
+                    }
+
+                    if (plant.careInfo.droughtTolerant) {
+                        InfoRow("Drought Tolerant", "Yes ✓")
+                    }
+
                     if (plant.notes.isNotEmpty()) {
                         Divider(modifier = Modifier.padding(vertical = 8.dp))
                         Text(
@@ -517,11 +556,7 @@ fun PlantDetailContent(
                 Text("Custom reminders")
             }
 
-            Spacer(Modifier.height(16.dp))
 
-            CareActionsSection(actionInProgress, handleWater, handleFertilize)
-
-            Spacer(Modifier.height(32.dp))
         }
     }
 }
