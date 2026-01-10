@@ -19,7 +19,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.plantpal.screens.detail.PlantDetailScreenWrapper
-import com.example.plantpal.screens.start.StartScreen
 import com.example.plantpal.ui.theme.PlantPalTheme
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
@@ -100,8 +99,6 @@ fun AppNavigation(modifier: Modifier = Modifier, startDestination: String = "sta
         startDestination = startDestination,
         modifier = modifier
     ) {
-        composable("start") { StartScreen(navController) }
-
         composable("login") {
             LoginScreen(
                 onSuccess = {
