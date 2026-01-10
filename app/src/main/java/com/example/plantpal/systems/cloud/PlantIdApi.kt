@@ -204,3 +204,116 @@ suspend fun assessPlantHealth(
         })
     }
 }
+
+data class PerenualResponse(
+    val data: List<PerenualPlant>? = null
+)
+
+data class PerenualPlant(
+    val id: Int? = null,
+    val common_name: String? = null,
+    val scientific_name: List<String>? = null,
+    val sunlight: List<String>? = null,
+    val watering: String? = null,
+    val watering_general_benchmark: WateringBenchmark? = null,
+    val care_level: String? = null,
+    val description: String? = null,
+    val indoor: Boolean? = null,
+    val maintenance: String? = null,
+    val growth_rate: String? = null,
+    val drought_tolerant: Boolean? = null,
+    val flowers: Boolean? = null,
+    val flowering_season: String? = null,
+    val attracts: List<String>? = null,
+    val propagation: List<String>? = null,
+    val care_guides: String? = null,
+    val poisonous_to_pets: Int? = null,
+    val poisonous_to_humans: Int? = null
+)
+
+data class WateringBenchmark(
+    val value: String? = null,
+    val unit: String? = null
+)
+
+suspend fun searchPlantCareDetails(
+    plantName: String,
+    apiKey: String
+): PerenualResponse? {
+    if (plantName.isBlank()) return null
+    
+    val client = OkHttpClient()
+
+    val encodedName = java.net.URLEncoder.encode(plantName, "UTF-8")
+    
+    val request = Request.Builder()
+        .url("https://perenual.com/api/species-list?key=$apiKey&q=$encodedName")
+        .get()
+        .build()
+
+    return suspendCancellableCoroutine { cont ->
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: java.io.IOException) {
+                e.printStackTrace()
+                cont.resume(null)
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                if (response.isSuccessful) {
+                    try {
+                        val moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
+                        val adapter = moshi.adapter(PerenualResponse::class.java)
+                        val body = response.body?.string()
+                        val result = adapter.fromJson(body ?: "")
+                        cont.resume(result)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        cont.resume(null)
+                    }
+                } else {
+                    println("Perenual API error: ${response.code} - ${response.message}")
+                    cont.resume(null)
+                }
+            }
+        })
+    }
+}
+
+suspend fun getPlantDetailsById(
+    plantId: Int,
+    apiKey: String
+): PerenualPlant? {
+    val client = OkHttpClient()
+    
+    val request = Request.Builder()
+        .url("https://perenual.com/api/species/details/$plantId?key=$apiKey")
+        .get()
+        .build()
+
+    return suspendCancellableCoroutine { cont ->
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: java.io.IOException) {
+                e.printStackTrace()
+                cont.resume(null)
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                if (response.isSuccessful) {
+                    try {
+                        val moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
+                        val adapter = moshi.adapter(PerenualPlant::class.java)
+                        val body = response.body?.string()
+                        val result = adapter.fromJson(body ?: "")
+                        cont.resume(result)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        cont.resume(null)
+                    }
+                } else {
+                    println("Perenual Details API error: ${response.code} - ${response.message}")
+                    cont.resume(null)
+                }
+            }
+        })
+    }
+}
