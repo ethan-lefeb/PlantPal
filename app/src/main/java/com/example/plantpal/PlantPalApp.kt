@@ -21,11 +21,12 @@ import androidx.navigation.navArgument
 import com.example.plantpal.screens.profile.ProfileScreen
 import com.example.plantpal.screens.profile.SettingsScreen
 import com.example.plantpal.screens.profile.DeveloperSettingsScreen
-import com.example.plantpal.BadgesScreen
 import com.example.plantpal.screens.detail.PlantDetailScreenWrapper
 import androidx.work.WorkManager
+import com.example.plantpal.com.example.plantpal.data.com.example.plantpal.data.AvatarConfig
+import com.example.plantpal.com.example.plantpal.data.com.example.plantpal.data.PlantProfile
+import com.example.plantpal.com.example.plantpal.ui.screens.com.example.plantpal.ui.screens.DashboardScreen
 import com.example.plantpal.ui.theme.ForestGradientBalanced
-import com.example.plantpal.ui.components.EntryButton
 
 data class Tab(val route: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
 
