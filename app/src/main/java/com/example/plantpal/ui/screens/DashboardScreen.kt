@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.plantpal.PlantAvatar
@@ -73,6 +74,7 @@ fun DashboardScreen(
             isLoading = false
         }
     }
+
 
     fun daysSince(ts: Long): Int {
         if (ts <= 0L) return Int.MAX_VALUE
@@ -174,7 +176,10 @@ fun DashboardScreen(
                 }
 
                 item {
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+                        verticalAlignment = Alignment.CenterVertically)
+                    {
                         EnhancedStatCard(
                             label = "Total Plants",
                             value = total.toString(),
@@ -399,39 +404,6 @@ private fun HealthChip(label: String, count: Int, color: Color) {
 }
 
 @Composable
-private fun EnhancedStatCard(
-    label: String,
-    value: String,
-    icon: String,
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.1f)),
-        elevation = CardDefaults.cardElevation(2.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(icon, style = MaterialTheme.typography.headlineMedium)
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = value,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
 private fun SectionHeader(
     title: String,
     action: String? = null,
@@ -628,6 +600,69 @@ private fun CustomReminderDashboardCard(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
+        }
+    }
+}
+
+@Composable
+private fun EnhancedStatCard(
+    label: String,
+    value: String,
+    icon: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    val outerShape = RoundedCornerShape(24.dp)
+    val innerShape = RoundedCornerShape(18.dp)
+
+    Card(
+        modifier = modifier,
+        shape = outerShape,
+        colors = CardDefaults.cardColors(
+            containerColor = color.copy(alpha = 0.22f) // OUTER ONLY
+        ),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
+        // ✅ INNER panel (rounded) — ONLY ONE inset
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp)                 // thickness of the “frame”
+                .clip(innerShape)               // ensures inner corners are rounded
+                .background(color.copy(alpha = 0.10f))
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = icon,
+                    style = MaterialTheme.typography.headlineMedium,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
     }
 }
