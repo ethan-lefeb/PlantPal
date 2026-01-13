@@ -69,6 +69,8 @@ import com.example.plantpal.com.example.plantpal.data.com.example.plantpal.data.
 import com.example.plantpal.com.example.plantpal.data.com.example.plantpal.data.toCareInfo
 import com.example.plantpal.com.example.plantpal.systems.cloud.com.example.plantpal.systems.cloud.Suggestion
 import com.example.plantpal.com.example.plantpal.systems.cloud.com.example.plantpal.systems.cloud.identifyPlantSuspend
+import com.example.plantpal.com.example.plantpal.systems.cloud.com.example.plantpal.systems.cloud.searchPlantCareDetails
+import com.example.plantpal.com.example.plantpal.systems.cloud.com.example.plantpal.systems.cloud.getPlantDetailsById
 import com.example.plantpal.com.example.plantpal.systems.helpers.com.example.plantpal.systems.helpers.PlantRepository
 import com.example.plantpal.ui.theme.ForestGradientBalanced
 
