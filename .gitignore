@@ -14,6 +14,9 @@
 .cxx
 local.properties
 
-# Ignore Plant.ID secret
-app/src/main/java/com/example/plantpal/PlantIdSecret.kt
-app/src/main/java/com/example/plantpal/PerenualSecret.kt
+# Secrets
+local.properties
+**/local.properties
+app/google-services.json
+**/PlantIdSecret.kt
+**/PerenualSecret.kt
