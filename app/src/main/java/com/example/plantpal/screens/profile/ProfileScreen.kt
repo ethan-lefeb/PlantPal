@@ -14,13 +14,15 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.plantpal.ui.theme.ForestGradientBalanced
-import com.example.plantpal.ui.components.EntryButton
+import androidx.compose.material.icons.filled.People
+
 
 
 @Composable
 fun ProfileScreen(
     onSignOut: () -> Unit,
     onDeveloperSettings: () -> Unit = {},
+    onSocialDashboard: () -> Unit = {},
     onBadges: () -> Unit = {}
 ) {
     Box(
@@ -56,6 +58,21 @@ fun ProfileScreen(
                 Spacer(Modifier.width(8.dp))
                 Text("Badges & Progress")
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedButton(
+                onClick = onSocialDashboard,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = Color(0xFF2F5233)
+                )
+            ) {
+                Icon(Icons.Default.People, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Social Dashboard")
+            }
+
 
             Spacer(modifier = Modifier.height(16.dp))
 

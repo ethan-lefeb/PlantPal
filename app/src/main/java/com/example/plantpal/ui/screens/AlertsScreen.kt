@@ -28,7 +28,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.plantpal.com.example.plantpal.data.com.example.plantpal.data.CustomReminder
 import com.example.plantpal.com.example.plantpal.data.com.example.plantpal.data.PlantProfile
-import com.example.plantpal.com.example.plantpal.systems.helpers.com.example.plantpal.systems.helpers.PlantRepository
+import com.example.plantpal.com.example.plantpal.systems.helpers.PlantRepository
 import com.example.plantpal.com.example.plantpal.systems.helpers.com.example.plantpal.systems.helpers.ReminderRepository
 import kotlinx.coroutines.launch
 import kotlin.math.max

@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
-import com.example.plantpal.com.example.plantpal.systems.helpers.com.example.plantpal.systems.helpers.PlantRepository
+import com.example.plantpal.com.example.plantpal.systems.helpers.PlantRepository
 import com.example.plantpal.com.example.plantpal.systems.helpers.com.example.plantpal.systems.helpers.AvatarDebugUtils
 import com.example.plantpal.CareReminderWorker
 import com.example.plantpal.BadgeRefreshSection

@@ -9,7 +9,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.plantpal.com.example.plantpal.systems.helpers.com.example.plantpal.systems.helpers.AvatarDebugUtils
-import com.example.plantpal.com.example.plantpal.systems.helpers.com.example.plantpal.systems.helpers.PlantRepository
+import com.example.plantpal.com.example.plantpal.systems.helpers.PlantRepository
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)

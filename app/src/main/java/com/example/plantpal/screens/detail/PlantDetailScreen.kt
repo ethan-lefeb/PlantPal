@@ -44,7 +44,7 @@ import com.example.plantpal.com.example.plantpal.systems.avatars.com.example.pla
 import com.example.plantpal.com.example.plantpal.systems.avatars.com.example.plantpal.systems.avatars.AvatarAnimationController
 import com.example.plantpal.com.example.plantpal.systems.avatars.com.example.plantpal.systems.avatars.rememberAvatarAnimationController
 import com.example.plantpal.com.example.plantpal.systems.helpers.com.example.plantpal.systems.helpers.PlantHealthCalculator
-import com.example.plantpal.com.example.plantpal.systems.helpers.com.example.plantpal.systems.helpers.PlantRepository
+import com.example.plantpal.com.example.plantpal.systems.helpers.PlantRepository
 import com.example.plantpal.com.example.plantpal.systems.helpers.com.example.plantpal.systems.helpers.ReminderRepository
 import com.example.plantpal.com.example.plantpal.ui.components.com.example.plantpal.ui.components.HealthMetricsCard
 import com.example.plantpal.com.example.plantpal.ui.components.com.example.plantpal.ui.components.ParticleEffect
