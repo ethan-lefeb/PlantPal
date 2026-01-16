@@ -29,10 +29,11 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun StreakWidget(
+    modifier: Modifier = Modifier,
     currentStreak: Int,
     longestStreak: Int,
-    onClick: () -> Unit = {},
-    modifier: Modifier = Modifier
+    onClick: () -> Unit = {}
+
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "streak")
     val flameScale by infiniteTransition.animateFloat(
@@ -44,29 +45,45 @@ fun StreakWidget(
         ),
         label = "flame_scale"
     )
-    
+
+    val outerShape = RoundedCornerShape(26.dp)
+    val innerShape = RoundedCornerShape(20.dp)
+
+    val outerColor = if (currentStreak > 0) {
+        Color(0xFFFF9800).copy(alpha = 0.18f)
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant
+    }
+
+    val innerColor = if (currentStreak > 0) {
+        Color(0xFFFF9800).copy(alpha = 0.08f)
+    } else {
+        MaterialTheme.colorScheme.surface.copy(alpha = 0.55f)
+    }
+
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .clip(outerShape)              // ✅ forces rounded clipping
             .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = if (currentStreak > 0) {
-                Color(0xFFFF9800).copy(alpha = 0.1f)
-            } else {
-                MaterialTheme.colorScheme.surfaceVariant
-            }
-        ),
+        colors = CardDefaults.cardColors(containerColor = outerColor),
         elevation = CardDefaults.cardElevation(4.dp),
-        shape = RoundedCornerShape(16.dp)
+        shape = outerShape
     ) {
-        Row(
+        // ✅ Inner rounded inset (this is what removes the “square insert” look)
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(10.dp)
+                .clip(innerShape)
+                .background(innerColor, innerShape)
+                .padding(16.dp)
         ) {
-            Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -88,30 +105,30 @@ fun StreakWidget(
                             if (currentStreak > 0) "$currentStreak days" else "Start today!",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            color = if (currentStreak > 0) Color(0xFFFF9800) else MaterialTheme.colorScheme.onSurface
+                            color = if (currentStreak > 0) Color(0xFFFF9800)
+                            else MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
-            }
-            
-            Column(
-                horizontalAlignment = Alignment.End
-            ) {
-                Text(
-                    "Best",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    "$longestStreak",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFFFFD700)
-                )
+
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        "Best",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        "$longestStreak",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFFFD700)
+                    )
+                }
             }
         }
     }
 }
+
 
 @Composable
 fun BadgeSummaryWidget(

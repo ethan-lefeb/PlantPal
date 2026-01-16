@@ -42,7 +42,7 @@ fun DashboardScreen(
 ) {
     val repo = remember { PlantRepository() }
     val progressRepo = remember { ProgressRepository() }
-    
+
     val reminderRepo = remember { ReminderRepository() }
     var customReminders by remember { mutableStateOf<List<CustomReminder>>(emptyList()) }
 
@@ -58,11 +58,11 @@ fun DashboardScreen(
 
             val plantsResult = repo.getAllPlants()
             val progressResult = progressRepo.getUserProgress()
-            
+
             plantsResult
                 .onSuccess { plants = it; error = null }
                 .onFailure { error = it.message }
-                
+
             progressResult
                 .onSuccess { progress = it }
                 .onFailure { /* Progress is optional, so just log */ }
@@ -612,57 +612,43 @@ private fun EnhancedStatCard(
     color: Color,
     modifier: Modifier = Modifier
 ) {
-    val outerShape = RoundedCornerShape(24.dp)
-    val innerShape = RoundedCornerShape(18.dp)
-
     Card(
         modifier = modifier,
-        shape = outerShape,
+        shape = RoundedCornerShape(16.dp), // 👈 rounded edges
         colors = CardDefaults.cardColors(
-            containerColor = color.copy(alpha = 0.22f) // OUTER ONLY
+            containerColor = color.copy(alpha = 0.1f)
         ),
         elevation = CardDefaults.cardElevation(2.dp)
     ) {
-        // ✅ INNER panel (rounded) — ONLY ONE inset
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(10.dp)                 // thickness of the “frame”
-                .clip(innerShape)               // ensures inner corners are rounded
-                .background(color.copy(alpha = 0.10f))
-                .padding(16.dp),
-            contentAlignment = Alignment.Center
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = icon,
-                    style = MaterialTheme.typography.headlineMedium,
-                    textAlign = TextAlign.Center
-                )
+            Text(
+                text = icon,
+                style = MaterialTheme.typography.headlineMedium,
+                textAlign = TextAlign.Center
+            )
 
-                Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(8.dp))
 
-                Text(
-                    text = value,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
 
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }
