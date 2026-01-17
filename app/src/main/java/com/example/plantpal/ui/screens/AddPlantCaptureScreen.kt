@@ -29,6 +29,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -120,12 +121,29 @@ fun AddPlantCaptureScreen(
                     FilterChip(
                         selected = mode == "photo",
                         onClick = { mode = "photo" },
-                        label = { Text("Identify from Photo") }
+                        label = { Text("Identify from Photo") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = Color(0xFF2E7D32),
+                            selectedLabelColor = Color.White,
+                            selectedLeadingIconColor = Color.White,
+
+                            containerColor = Color(0xFFE8F5E9),
+                            labelColor = Color(0xFF2E7D32)
+                        )
                     )
+
                     FilterChip(
                         selected = mode == "manual",
                         onClick = { mode = "manual" },
-                        label = { Text("Add Manually") }
+                        label = { Text("Add Manually") },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = Color(0xFF2E7D32),
+                            selectedLabelColor = Color.White,
+                            selectedLeadingIconColor = Color.White,
+
+                            containerColor = Color(0xFFE8F5E9),
+                            labelColor = Color(0xFF2E7D32)
+                        )
                     )
                 }
 

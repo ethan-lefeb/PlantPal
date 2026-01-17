@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledTonalButton
@@ -21,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -318,7 +320,13 @@ private fun CareCard(
             },
             supportingContent = { Text(subtitle) },
             trailingContent = {
-                FilledTonalButton(onClick = onAction) {
+                FilledTonalButton(
+                    onClick = onAction,
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = Color(0xFF2E7D32), // Material green
+                        contentColor = Color.White
+                    )
+                ) {
                     Icon(Icons.Default.Check, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
                     Text(actionLabel)
