@@ -16,13 +16,13 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.plantpal.com.example.plantpal.systems.helpers.com.example.plantpal.systems.helpers.AuthRepository
-import kotlinx.coroutines.launch
-import com.example.plantpal.ui.theme.ForestPrimary
-import com.example.plantpal.ui.theme.ForestGradientBalanced
-import com.example.plantpal.ui.theme.ForestSecondaryText
 import com.example.plantpal.ui.components.EntryButton
+import com.example.plantpal.ui.theme.ForestGradientBalanced
+import com.example.plantpal.ui.theme.ForestPrimary
+import com.example.plantpal.ui.theme.ForestSecondaryText
+import com.example.plantpal.ui.theme.LocalUIScale
+import kotlinx.coroutines.launch
 
 
 @Composable
@@ -30,6 +30,7 @@ fun LoginScreen(
     onSuccess: () -> Unit = {},
     onNavigateToSignup: () -> Unit = {}
 ) {
+    val scaled = LocalUIScale.current
     val scope = rememberCoroutineScope()
 
     var email by rememberSaveable { mutableStateOf("") }
@@ -43,7 +44,7 @@ fun LoginScreen(
             .background(
                 Brush.verticalGradient(ForestGradientBalanced)
             )
-            .padding(24.dp)
+            .padding(scaled.paddingLarge)
     ) {
         Column(
             modifier = Modifier
@@ -57,8 +58,8 @@ fun LoginScreen(
                 contentDescription = null,
                 tint = ForestPrimary,
                 modifier = Modifier
-                    .size(64.dp)
-                    .padding(bottom = 8.dp)
+                    .size(scaled.iconSizeLarge * 2)
+                    .padding(bottom = scaled.paddingSmall)
             )
 
             // Header Text
@@ -66,17 +67,18 @@ fun LoginScreen(
                 text = "Welcome Back",
                 style = MaterialTheme.typography.headlineSmall.copy(
                     fontWeight = FontWeight.Bold,
-                    color = ForestPrimary
+                    color = ForestPrimary,
+                    fontSize = scaled.headlineSmall
                 ),
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(bottom = 32.dp)
+                modifier = Modifier.padding(bottom = scaled.paddingLarge)
             )
 
             // Email Field
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
-                label = { Text("Email") },
+                label = { Text("Email", fontSize = scaled.bodyMedium) },
                 singleLine = true,
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth(),
@@ -85,16 +87,17 @@ fun LoginScreen(
                     unfocusedBorderColor = ForestPrimary.copy(alpha = 0.4f),
                     cursorColor = ForestPrimary,
                     focusedLabelColor = ForestPrimary
-                )
+                ),
+                textStyle = LocalTextStyle.current.copy(fontSize = scaled.bodyLarge)
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(scaled.spacingMedium))
 
             // Password Field
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Password") },
+                label = { Text("Password", fontSize = scaled.bodyMedium) },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
                 shape = RoundedCornerShape(16.dp),
@@ -104,10 +107,11 @@ fun LoginScreen(
                     unfocusedBorderColor = ForestPrimary.copy(alpha = 0.4f),
                     cursorColor = ForestPrimary,
                     focusedLabelColor = ForestPrimary
-                )
+                ),
+                textStyle = LocalTextStyle.current.copy(fontSize = scaled.bodyLarge)
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(scaled.spacingLarge))
 
             EntryButton(
                 text = "Login"
@@ -131,34 +135,37 @@ fun LoginScreen(
                 }
             }
 
-
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(scaled.spacingMedium))
 
             TextButton(onClick = onNavigateToSignup) {
                 Text(
                     "Need an account? Sign up",
                     color = ForestPrimary,
-                    fontSize = 14.sp
+                    fontSize = scaled.bodyMedium
                 )
             }
 
             if (errorMessage != null) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(scaled.spacingSmall))
                 Text(
                     text = errorMessage!!,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = scaled.bodyMedium
+                    ),
                     color = MaterialTheme.colorScheme.error,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 8.dp)
+                    modifier = Modifier.padding(horizontal = scaled.paddingSmall)
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(scaled.spacingMedium))
 
             Text(
                 text = "Grow your green journey with PlantPal",
                 style = MaterialTheme.typography.bodySmall.copy(
                     color = ForestSecondaryText,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    fontSize = scaled.bodySmall
                 ),
                 textAlign = TextAlign.Center
             )
