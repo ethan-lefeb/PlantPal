@@ -234,8 +234,11 @@ fun DashboardScreen(
                 onClick = onAddPlant,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(scaled.buttonHeight)
-                    .padding(vertical = scaled.paddingMedium)
+                    .height(scaled.buttonHeight),
+                contentPadding = PaddingValues(
+                    horizontal = scaled.paddingMedium,
+                    vertical = scaled.paddingSmall
+                )
             ) {
                 Text("➕ Add New Plant", fontSize = scaled.labelLarge)
             }
