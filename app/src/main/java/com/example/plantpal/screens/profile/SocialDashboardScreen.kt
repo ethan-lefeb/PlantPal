@@ -8,10 +8,11 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
 import com.example.plantpal.data.ActivityEvent
 import com.example.plantpal.systems.social.ActivityRepository
 import com.example.plantpal.systems.social.FriendRepository
+import com.example.plantpal.ui.theme.LocalUIScale
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
@@ -21,6 +22,7 @@ import kotlinx.coroutines.launch
 fun SocialDashboardScreen(
     onBack: () -> Unit
 ) {
+    val scaled = LocalUIScale.current
     val activityRepo = remember { ActivityRepository() }
     val friendRepo = remember { FriendRepository() }
     val scope = rememberCoroutineScope()
@@ -35,8 +37,6 @@ fun SocialDashboardScreen(
             error = null
 
             try {
-                // Key: ensures the sender side of "accepted" requests becomes a friend doc,
-                // making Option B's exists(...) rule pass for both directions.
                 friendRepo.syncAcceptedOutgoingToFriends()
 
                 val friendUids = friendRepo.getMyFriendUids().getOrElse { emptyList() }
@@ -65,10 +65,21 @@ fun SocialDashboardScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Social Dashboard") },
+                title = {
+                    Text(
+                        "Social Dashboard",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontSize = scaled.titleLarge
+                        )
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            modifier = Modifier.size(scaled.iconSizeMedium)
+                        )
                     }
                 }
             )
@@ -80,48 +91,74 @@ fun SocialDashboardScreen(
                     .padding(padding)
                     .fillMaxSize(),
                 contentAlignment = androidx.compose.ui.Alignment.Center
-            ) { CircularProgressIndicator() }
+            ) {
+                CircularProgressIndicator()
+            }
 
             error != null -> Column(
                 modifier = Modifier
                     .padding(padding)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(scaled.paddingMedium),
+                verticalArrangement = Arrangement.spacedBy(scaled.spacingMedium)
             ) {
-                Text(error!!, color = MaterialTheme.colorScheme.error)
-                Button(onClick = { refresh() }) { Text("Retry") }
+                Text(
+                    error!!,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontSize = scaled.bodyLarge
+                    ),
+                    color = MaterialTheme.colorScheme.error
+                )
+                Button(
+                    onClick = { refresh() },
+                    modifier = Modifier.height(scaled.buttonHeight)
+                ) {
+                    Text("Retry", fontSize = scaled.labelLarge)
+                }
             }
 
             activities.isEmpty() -> Column(
                 modifier = Modifier
                     .padding(padding)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(scaled.paddingMedium),
+                verticalArrangement = Arrangement.spacedBy(scaled.spacingMedium)
             ) {
-                Text("No recent activity yet.")
+                Text(
+                    "No recent activity yet.",
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontSize = scaled.bodyLarge
+                    )
+                )
             }
 
             else -> LazyColumn(
                 modifier = Modifier
                     .padding(padding)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(scaled.paddingMedium),
+                verticalArrangement = Arrangement.spacedBy(scaled.spacingSmall)
             ) {
                 items(activities) { activity ->
                     Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(12.dp)) {
+                        Column(Modifier.padding(scaled.paddingMedium)) {
                             val name = activity.actorName.ifBlank { "Unknown" }
                             val ts = formatRelativeTime(activity.createdAt)
 
                             Text(
                                 if (ts.isBlank()) name else "$name • $ts",
-                                style = MaterialTheme.typography.bodySmall,
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontSize = scaled.bodySmall
+                                ),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
 
-                            Spacer(Modifier.height(4.dp))
+                            Spacer(Modifier.height(scaled.spacingXSmall))
 
-                            Text(activity.text, style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                activity.text,
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontSize = scaled.bodyMedium,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            )
                         }
                     }
                 }

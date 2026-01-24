@@ -24,6 +24,7 @@ import com.example.plantpal.com.example.plantpal.ui.screens.com.example.plantpal
 import com.example.plantpal.screens.detail.PlantDetailScreenWrapper
 import com.example.plantpal.screens.profile.SocialDashboardScreen
 import com.example.plantpal.ui.theme.PlantPalTheme
+import com.example.plantpal.ui.theme.UIScaleProvider  // ADD THIS IMPORT
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
@@ -42,7 +43,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Request permissions for notifications (Android 13+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val permissionCheck = ActivityCompat.checkSelfPermission(
                 this, Manifest.permission.POST_NOTIFICATIONS
@@ -52,7 +52,6 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Save FCM token when available
         FirebaseMessaging.getInstance().token.addOnSuccessListener { token ->
             val userId = AuthRepository.currentUserId()
             if (userId != null) {
@@ -63,11 +62,13 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            PlantPalTheme {
-                Scaffold { innerPadding ->
-                    AppNavigation(
-                        modifier = Modifier.padding(innerPadding)
-                    )
+            UIScaleProvider {
+                PlantPalTheme {
+                    Scaffold { innerPadding ->
+                        AppNavigation(
+                            modifier = Modifier.padding(innerPadding)
+                        )
+                    }
                 }
             }
         }
@@ -101,7 +102,6 @@ fun AppNavigation(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
     val currentUserId = AuthRepository.currentUserId()
 
-    // IMPORTANT: only use routes that actually exist in this NavHost
     val startDestination = if (currentUserId != null) "home" else "login"
 
     NavHost(
