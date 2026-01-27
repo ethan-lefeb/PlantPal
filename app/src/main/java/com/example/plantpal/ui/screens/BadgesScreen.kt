@@ -32,7 +32,7 @@ import com.example.plantpal.com.example.plantpal.systems.badges.com.example.plan
 import com.example.plantpal.com.example.plantpal.systems.badges.com.example.plantpal.systems.badges.BadgeDefinitions
 import com.example.plantpal.com.example.plantpal.systems.badges.com.example.plantpal.systems.badges.BadgeRarity
 import com.example.plantpal.com.example.plantpal.systems.badges.com.example.plantpal.systems.badges.UserProgress
-import com.example.plantpal.com.example.plantpal.systems.helpers.com.example.plantpal.systems.helpers.PlantRepository
+import com.example.plantpal.com.example.plantpal.systems.helpers.PlantRepository
 import com.example.plantpal.com.example.plantpal.systems.helpers.com.example.plantpal.systems.helpers.ProgressRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

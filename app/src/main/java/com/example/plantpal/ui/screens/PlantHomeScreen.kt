@@ -24,7 +24,9 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.plantpal.com.example.plantpal.data.com.example.plantpal.data.PlantProfile
 import com.example.plantpal.com.example.plantpal.systems.helpers.com.example.plantpal.systems.helpers.PlantHealthCalculator
-import com.example.plantpal.com.example.plantpal.systems.helpers.com.example.plantpal.systems.helpers.PlantRepository
+import com.example.plantpal.com.example.plantpal.systems.helpers.PlantRepository
+import com.example.plantpal.ui.theme.LocalUIScale
+import com.example.plantpal.ui.theme.ScaledSizes
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -67,12 +69,20 @@ fun PlantsHomeScreen(
     viewModel: PlantsViewModel = viewModel(),
     onPlantClick: (String) -> Unit = {}
 ) {
+    val scaled = LocalUIScale.current  // GET SCALED VALUES
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("My Plants") },
+                title = {
+                    Text(
+                        "My Plants",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontSize = scaled.titleLarge
+                        )
+                    )
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent
                 )
@@ -92,26 +102,39 @@ fun PlantsHomeScreen(
 
                 uiState.error != null -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Error loading plants", color = MaterialTheme.colorScheme.error)
-                        Spacer(Modifier.height(12.dp))
-                        Button(onClick = { viewModel.loadPlants() }) { Text("Retry") }
+                        Text(
+                            "Error loading plants",
+                            color = MaterialTheme.colorScheme.error,
+                            fontSize = scaled.bodyLarge
+                        )
+                        Spacer(Modifier.height(scaled.spacingMedium))
+                        Button(
+                            onClick = { viewModel.loadPlants() },
+                            modifier = Modifier.height(scaled.buttonHeight)
+                        ) {
+                            Text("Retry", fontSize = scaled.labelLarge)
+                        }
                     }
                 }
 
                 uiState.plants.isEmpty() -> Box(Modifier.fillMaxSize(), Alignment.Center) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(32.dp)
+                        modifier = Modifier.padding(scaled.paddingLarge)
                     ) {
                         Text(
                             "Your plants will appear here 🌱",
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontSize = scaled.titleLarge
+                            ),
                             textAlign = TextAlign.Center
                         )
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(scaled.spacingSmall))
                         Text(
                             "Tap the + button to add your first plant!",
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontSize = scaled.bodyLarge
+                            ),
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -122,30 +145,30 @@ fun PlantsHomeScreen(
                     // Calculate health metrics for all plants
                     val plantsWithHealth = uiState.plants.map { plant ->
                         plant to PlantHealthCalculator.calculateHealth(plant)
-                    }.sortedByDescending { (_, metrics) -> 
-                        // Sort by urgency first, then by health
+                    }.sortedByDescending { (_, metrics) ->
                         PlantHealthCalculator.getCareUrgency(metrics) * 1000 + (1 - metrics.overallHealth)
                     }
 
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        contentPadding = PaddingValues(scaled.paddingMedium),
+                        verticalArrangement = Arrangement.spacedBy(scaled.spacingMedium)
                     ) {
                         item {
-                            LibrarySummaryCard(plantsWithHealth)
+                            LibrarySummaryCard(plantsWithHealth, scaled)
                         }
 
                         items(plantsWithHealth) { (plant, metrics) ->
                             EnhancedPlantCard(
                                 plant = plant,
                                 metrics = metrics,
+                                scaled = scaled,
                                 onDelete = { viewModel.deletePlant(it) },
                                 onClick = { onPlantClick(plant.plantId) }
                             )
                         }
                         item {
-                            Spacer(Modifier.height(80.dp))
+                            Spacer(Modifier.height(scaled.spacingXLarge * 2))
                         }
                     }
                 }
@@ -155,10 +178,13 @@ fun PlantsHomeScreen(
 }
 
 @Composable
-private fun LibrarySummaryCard(plantsWithHealth: List<Pair<PlantProfile, PlantHealthCalculator.HealthMetrics>>) {
+private fun LibrarySummaryCard(
+    plantsWithHealth: List<Pair<PlantProfile, PlantHealthCalculator.HealthMetrics>>,
+    scaled: ScaledSizes
+) {
     val total = plantsWithHealth.size
-    val needingAttention = plantsWithHealth.count { (_, metrics) ->
-        PlantHealthCalculator.needsAttention(metrics.healthStatus, metrics.overallHealth)
+    val needingAttention = plantsWithHealth.count { (plant, _) ->
+        PlantHealthCalculator.needsAttention(plant)
     }
     val avgHealth = if (total > 0) {
         plantsWithHealth.map { it.second.overallHealth }.average().toFloat()
@@ -174,33 +200,39 @@ private fun LibrarySummaryCard(plantsWithHealth: List<Pair<PlantProfile, PlantHe
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(scaled.paddingMedium),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     "$total",
-                    style = MaterialTheme.typography.headlineMedium,
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontSize = scaled.headlineMedium
+                    ),
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     "Total Plants",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontSize = scaled.bodySmall
+                    ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
             Divider(
                 modifier = Modifier
-                    .height(40.dp)
+                    .height(scaled.spacingXLarge)
                     .width(1.dp)
             )
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     "${(avgHealth * 100).toInt()}%",
-                    style = MaterialTheme.typography.headlineMedium,
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontSize = scaled.headlineMedium
+                    ),
                     fontWeight = FontWeight.Bold,
                     color = when {
                         avgHealth >= 0.75f -> Color(0xFF4CAF50)
@@ -210,14 +242,16 @@ private fun LibrarySummaryCard(plantsWithHealth: List<Pair<PlantProfile, PlantHe
                 )
                 Text(
                     "Avg Health",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontSize = scaled.bodySmall
+                    ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
             Divider(
                 modifier = Modifier
-                    .height(40.dp)
+                    .height(scaled.spacingXLarge)
                     .width(1.dp)
             )
 
@@ -228,20 +262,24 @@ private fun LibrarySummaryCard(plantsWithHealth: List<Pair<PlantProfile, PlantHe
                             Icons.Default.Warning,
                             contentDescription = null,
                             tint = Color(0xFFFFC107),
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(scaled.iconSizeSmall)
                         )
-                        Spacer(Modifier.width(4.dp))
+                        Spacer(Modifier.width(scaled.spacingXSmall))
                     }
                     Text(
                         "$needingAttention",
-                        style = MaterialTheme.typography.headlineMedium,
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontSize = scaled.headlineMedium
+                        ),
                         fontWeight = FontWeight.Bold,
                         color = if (needingAttention > 0) Color(0xFFFFC107) else Color(0xFF4CAF50)
                     )
                 }
                 Text(
                     "Need Care",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontSize = scaled.bodySmall
+                    ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -250,164 +288,87 @@ private fun LibrarySummaryCard(plantsWithHealth: List<Pair<PlantProfile, PlantHe
 }
 
 @Composable
-fun EnhancedPlantCard(
+private fun EnhancedPlantCard(
     plant: PlantProfile,
     metrics: PlantHealthCalculator.HealthMetrics,
+    scaled: ScaledSizes,
     onDelete: (PlantProfile) -> Unit,
-    onClick: () -> Unit = {}
+    onClick: () -> Unit
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
-    val healthPercentage = (metrics.overallHealth * 100).toInt()
-    val urgency = PlantHealthCalculator.getCareUrgency(metrics)
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() },
+            .clickable(onClick = onClick),
+        elevation = CardDefaults.cardElevation(4.dp),
         colors = CardDefaults.cardColors(
-            containerColor = when {
-                urgency >= 3 -> Color(0xFFFFF3E0)
-                urgency >= 2 -> Color(0xFFFFF9E6)
+            containerColor = when (metrics.healthStatus) {
+                "Critical" -> Color(0xFFFFF3E0)
+                "Warning" -> Color(0xFFFFFDE7)
                 else -> MaterialTheme.colorScheme.surface
             }
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (urgency >= 2) 6.dp else 3.dp
-        ),
-        shape = MaterialTheme.shapes.medium
+        )
     ) {
-        Column {
-            Row(
-                modifier = Modifier
-                    .padding(12.dp)
-                    .fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box {
-                    PlantAvatar(
-                        avatarConfig = plant.avatarConfig,
-                        health = metrics.healthStatus,
-                        size = 80.dp,
-                        animated = false,
-                        modifier = Modifier
-                    )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(scaled.paddingMedium),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            PlantAvatar(
+                avatarConfig = plant.avatarConfig,
+                health = metrics.healthStatus,
+                size = scaled.avatarSizeLarge,
+                animated = true
+            )
 
-                    Surface(
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .offset(x = 4.dp, y = 4.dp),
-                        shape = CircleShape,
-                        color = PlantHealthCalculator.getHealthColor(metrics),
-                        shadowElevation = 4.dp
-                    ) {
-                        Text(
-                            text = "$healthPercentage%",
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
+            Spacer(Modifier.width(scaled.spacingMedium))
 
-                Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    plant.commonName,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontSize = scaled.titleMedium
+                    ),
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    plant.scientificName,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontSize = scaled.bodySmall
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
 
-                Column(Modifier.weight(1f)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Text(
-                            plant.commonName,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        if (urgency >= 2) {
-                            Icon(
-                                Icons.Default.Warning,
-                                contentDescription = "Needs attention",
-                                tint = Color(0xFFFFC107),
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-                    
+                Spacer(Modifier.height(scaled.spacingXSmall))
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(scaled.spacingSmall),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    HealthBadge(metrics.healthStatus, scaled)
+
                     Text(
-                        plant.scientificName,
-                        style = MaterialTheme.typography.bodyMedium,
+                        "${(metrics.overallHealth * 100).toInt()}%",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = scaled.labelSmall
+                        ),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Spacer(Modifier.height(8.dp))
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .clip(CircleShape)
-                                .background(PlantHealthCalculator.getHealthColor(metrics))
-                        )
-                        
-                        Text(
-                            metrics.healthStatus.replaceFirstChar { it.uppercase() },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = PlantHealthCalculator.getHealthColor(metrics),
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-
-                    if (urgency >= 1) {
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            PlantHealthCalculator.getRecommendedAction(metrics, plant),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 2
-                        )
-                    }
-                }
-
-                IconButton(onClick = { showDeleteDialog = true }) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "Delete plant",
-                        tint = MaterialTheme.colorScheme.error
                     )
                 }
             }
 
-            if (urgency >= 1) {
-                Divider()
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    MetricChip(
-                        label = "Water",
-                        value = if (metrics.daysUntilWaterNeeded == 0) "Today" 
-                                else "${metrics.daysUntilWaterNeeded}d",
-                        level = metrics.hydrationLevel,
-                        icon = "💧"
-                    )
-                    MetricChip(
-                        label = "Food",
-                        value = if (metrics.daysUntilFertilizerNeeded == 0) "Today"
-                                else "${metrics.daysUntilFertilizerNeeded}d",
-                        level = metrics.nutritionLevel,
-                        icon = "🌿"
-                    )
-                    MetricChip(
-                        label = "Care",
-                        value = "${(metrics.careConsistency * 100).toInt()}%",
-                        level = metrics.careConsistency,
-                        icon = "📊"
-                    )
-                }
+            IconButton(
+                onClick = { showDeleteDialog = true },
+                modifier = Modifier.size(scaled.buttonHeight)
+            ) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Delete plant",
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(scaled.iconSizeMedium)
+                )
             }
         }
     }
@@ -415,21 +376,31 @@ fun EnhancedPlantCard(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Plant?") },
-            text = { 
-                Text("Are you sure you want to delete ${plant.commonName}? This action cannot be undone.") 
+            title = {
+                Text(
+                    "Delete ${plant.commonName}?",
+                    fontSize = scaled.titleMedium
+                )
+            },
+            text = {
+                Text(
+                    "This action cannot be undone.",
+                    fontSize = scaled.bodyMedium
+                )
             },
             confirmButton = {
-                TextButton(onClick = {
-                    showDeleteDialog = false
-                    onDelete(plant)
-                }) { 
-                    Text("Delete", color = MaterialTheme.colorScheme.error) 
+                TextButton(
+                    onClick = {
+                        onDelete(plant)
+                        showDeleteDialog = false
+                    }
+                ) {
+                    Text("Delete", fontSize = scaled.labelLarge)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) { 
-                    Text("Cancel") 
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel", fontSize = scaled.labelLarge)
                 }
             }
         )
@@ -437,52 +408,40 @@ fun EnhancedPlantCard(
 }
 
 @Composable
-private fun MetricChip(
-    label: String,
-    value: String,
-    level: Float,
-    icon: String
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.width(80.dp)
-    ) {
-        Surface(
-            shape = RoundedCornerShape(8.dp),
-            color = when {
-                level >= 0.7f -> Color(0xFF4CAF50).copy(alpha = 0.15f)
-                level >= 0.4f -> Color(0xFFFFC107).copy(alpha = 0.15f)
-                else -> Color(0xFFF44336).copy(alpha = 0.15f)
-            }
-        ) {
-            Column(
-                modifier = Modifier.padding(8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    icon,
-                    style = MaterialTheme.typography.labelMedium
-                )
-                Text(
-                    value,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = when {
-                        level >= 0.7f -> Color(0xFF4CAF50)
-                        level >= 0.4f -> Color(0xFFFFC107)
-                        else -> Color(0xFFF44336)
-                    }
-                )
-            }
-        }
-        Spacer(Modifier.height(2.dp))
-        Text(
-            label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+private fun HealthBadge(status: String, scaled: ScaledSizes) {
+    val (color, emoji) = when (status) {
+        "Healthy" -> Color(0xFF4CAF50) to "✓"
+        "Warning" -> Color(0xFFFFC107) to "⚠"
+        "Critical" -> Color(0xFFF44336) to "!"
+        else -> MaterialTheme.colorScheme.outline to "?"
     }
-}
-private fun PlantHealthCalculator.needsAttention(status: String, health: Float): Boolean {
-    return health < 0.6f || status == "critical"
+
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = color.copy(alpha = 0.15f)
+    ) {
+        Row(
+            modifier = Modifier.padding(
+                horizontal = scaled.paddingSmall,
+                vertical = scaled.paddingXSmall
+            ),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                emoji,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = scaled.labelSmall
+                )
+            )
+            Spacer(Modifier.width(scaled.spacingXSmall))
+            Text(
+                status,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = scaled.labelSmall
+                ),
+                fontWeight = FontWeight.Medium,
+                color = color
+            )
+        }
+    }
 }

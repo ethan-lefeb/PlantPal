@@ -73,6 +73,9 @@ import com.example.plantpal.com.example.plantpal.systems.cloud.com.example.plant
 import com.example.plantpal.com.example.plantpal.systems.cloud.com.example.plantpal.systems.cloud.identifyPlantSuspend
 import com.example.plantpal.com.example.plantpal.systems.cloud.com.example.plantpal.systems.cloud.searchPlantCareDetails
 import com.example.plantpal.com.example.plantpal.systems.helpers.com.example.plantpal.systems.helpers.PlantRepository
+import com.example.plantpal.com.example.plantpal.systems.cloud.com.example.plantpal.systems.cloud.searchPlantCareDetails
+import com.example.plantpal.com.example.plantpal.systems.cloud.com.example.plantpal.systems.cloud.getPlantDetailsById
+import com.example.plantpal.com.example.plantpal.systems.helpers.PlantRepository
 import com.example.plantpal.ui.theme.ForestGradientBalanced
 
 @OptIn(ExperimentalMaterial3Api::class)

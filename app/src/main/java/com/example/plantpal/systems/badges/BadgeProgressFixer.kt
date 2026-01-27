@@ -4,7 +4,7 @@ import android.util.Log
 import com.example.plantpal.com.example.plantpal.systems.badges.com.example.plantpal.systems.badges.Badge
 import com.example.plantpal.com.example.plantpal.systems.badges.com.example.plantpal.systems.badges.BadgeChecker
 import com.example.plantpal.com.example.plantpal.systems.badges.com.example.plantpal.systems.badges.BadgeDefinitions
-import com.example.plantpal.com.example.plantpal.systems.helpers.com.example.plantpal.systems.helpers.PlantRepository
+import com.example.plantpal.com.example.plantpal.systems.helpers.PlantRepository
 import com.example.plantpal.com.example.plantpal.systems.helpers.com.example.plantpal.systems.helpers.ProgressRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

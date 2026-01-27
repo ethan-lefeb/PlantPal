@@ -6,7 +6,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledTonalButton
@@ -22,16 +21,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.plantpal.com.example.plantpal.data.com.example.plantpal.data.CustomReminder
 import com.example.plantpal.com.example.plantpal.data.com.example.plantpal.data.PlantProfile
-import com.example.plantpal.com.example.plantpal.systems.helpers.com.example.plantpal.systems.helpers.PlantRepository
+import com.example.plantpal.com.example.plantpal.systems.helpers.PlantRepository
 import com.example.plantpal.com.example.plantpal.systems.helpers.com.example.plantpal.systems.helpers.ReminderRepository
+import com.example.plantpal.ui.theme.LocalUIScale
 import kotlinx.coroutines.launch
 import kotlin.math.max
 
@@ -150,6 +149,7 @@ class AlertsViewModel : ViewModel() {
 fun AlertsScreen(
     onOpenPlant: (String) -> Unit
 ) {
+    val scaled = LocalUIScale.current
     val viewModel = remember { AlertsViewModel() }
     val state = viewModel.uiState
     val context = LocalContext.current
@@ -169,11 +169,14 @@ fun AlertsScreen(
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     text = "Couldn't load alerts",
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontSize = scaled.bodyLarge
+                    ),
                     color = MaterialTheme.colorScheme.error
                 )
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(scaled.spacingMedium))
                 TextButton(onClick = { viewModel.refresh() }) {
-                    Text("Retry")
+                    Text("Retry", fontSize = scaled.labelLarge)
                 }
             }
         }
@@ -190,42 +193,56 @@ fun AlertsScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.Info, contentDescription = null)
-                        Spacer(Modifier.height(8.dp))
-                        Text("No care needed today 🎉")
+                        Icon(
+                            Icons.Default.Info,
+                            contentDescription = null,
+                            modifier = Modifier.size(scaled.iconSizeLarge)
+                        )
+                        Spacer(Modifier.height(scaled.spacingSmall))
+                        Text(
+                            "No care needed today 🎉",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontSize = scaled.titleMedium
+                            )
+                        )
                     }
                 }
             } else {
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                        .padding(scaled.paddingMedium),
+                    verticalArrangement = Arrangement.spacedBy(scaled.spacingMedium)
                 ) {
                     // Header
                     item {
                         Text(
-                            "Today’s alerts",
-                            style = MaterialTheme.typography.headlineSmall
+                            "Today's alerts",
+                            style = MaterialTheme.typography.headlineSmall.copy(
+                                fontSize = scaled.headlineSmall,
+                                fontWeight = FontWeight.Bold
+                            )
                         )
-                        Spacer(Modifier.height(4.dp))
+                        Spacer(Modifier.height(scaled.spacingXSmall))
                         Text(
                             "$total item${if (total == 1) "" else "s"} due today",
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontSize = scaled.bodyMedium
+                            ),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
                     // Water section
                     if (state.water.isNotEmpty()) {
-                        item { SectionHeader("Watering") }
+                        item { SectionHeader("Watering", scaled) }
                         items(state.water) { alert ->
                             CareCard(
                                 title = alert.plant.commonName,
                                 subtitle = "Needs watering",
                                 actionLabel = "Mark done",
+                                scaled = scaled,
                                 onAction = {
-                                    // Update lastWatered + optionally trigger worker
                                     viewModel.markCareDone(alert)
                                     CareReminderWorker.triggerCareNow(context)
                                 },
@@ -236,12 +253,13 @@ fun AlertsScreen(
 
                     // Fertilize section
                     if (state.fertilize.isNotEmpty()) {
-                        item { SectionHeader("Fertilizing") }
+                        item { SectionHeader("Fertilizing", scaled) }
                         items(state.fertilize) { alert ->
                             CareCard(
                                 title = alert.plant.commonName,
                                 subtitle = "Needs fertilizer",
                                 actionLabel = "Mark done",
+                                scaled = scaled,
                                 onAction = {
                                     viewModel.markCareDone(alert)
                                     CareReminderWorker.triggerCareNow(context)
@@ -253,12 +271,13 @@ fun AlertsScreen(
 
                     // Rotate section
                     if (state.rotate.isNotEmpty()) {
-                        item { SectionHeader("Rotation") }
+                        item { SectionHeader("Rotation", scaled) }
                         items(state.rotate) { alert ->
                             CareCard(
                                 title = alert.plant.commonName,
                                 subtitle = "Should be rotated",
                                 actionLabel = "Mark done",
+                                scaled = scaled,
                                 onAction = {
                                     viewModel.markCareDone(alert)
                                     CareReminderWorker.triggerCareNow(context)
@@ -270,10 +289,11 @@ fun AlertsScreen(
 
                     // Custom reminders section
                     if (state.customReminders.isNotEmpty()) {
-                        item { SectionHeader("Custom reminders") }
+                        item { SectionHeader("Custom reminders", scaled) }
                         items(state.customReminders) { reminder ->
                             CustomReminderAlertCard(
                                 reminder = reminder,
+                                scaled = scaled,
                                 onOpen = {
                                     val plantId = reminder.plantId
                                     if (!plantId.isNullOrBlank()) {
@@ -290,12 +310,15 @@ fun AlertsScreen(
 }
 
 @Composable
-private fun SectionHeader(title: String) {
+private fun SectionHeader(title: String, scaled: com.example.plantpal.ui.theme.ScaledSizes) {
     Text(
         text = title,
-        style = MaterialTheme.typography.titleLarge
+        style = MaterialTheme.typography.titleLarge.copy(
+            fontSize = scaled.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
     )
-    Spacer(Modifier.height(4.dp))
+    Spacer(Modifier.height(scaled.spacingXSmall))
 }
 
 @Composable
@@ -303,6 +326,7 @@ private fun CareCard(
     title: String,
     subtitle: String,
     actionLabel: String,
+    scaled: com.example.plantpal.ui.theme.ScaledSizes,
     onAction: () -> Unit,
     onOpen: () -> Unit
 ) {
@@ -314,22 +338,33 @@ private fun CareCard(
             headlineContent = {
                 Text(
                     title,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontSize = scaled.titleMedium
+                    ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             },
-            supportingContent = { Text(subtitle) },
+            supportingContent = {
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = scaled.bodyMedium
+                    )
+                )
+            },
             trailingContent = {
                 FilledTonalButton(
                     onClick = onAction,
-                    colors = ButtonDefaults.filledTonalButtonColors(
-                        containerColor = Color(0xFF2E7D32), // Material green
-                        contentColor = Color.White
-                    )
+                    modifier = Modifier.height(scaled.buttonHeight)
                 ) {
-                    Icon(Icons.Default.Check, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text(actionLabel)
+                    Icon(
+                        Icons.Default.Check,
+                        contentDescription = null,
+                        modifier = Modifier.size(scaled.iconSizeSmall)
+                    )
+                    Spacer(Modifier.width(scaled.spacingSmall))
+                    Text(actionLabel, fontSize = scaled.labelMedium)
                 }
             }
         )
@@ -339,6 +374,7 @@ private fun CareCard(
 @Composable
 private fun CustomReminderAlertCard(
     reminder: CustomReminder,
+    scaled: com.example.plantpal.ui.theme.ScaledSizes,
     onOpen: () -> Unit
 ) {
     ElevatedCard(
@@ -349,6 +385,9 @@ private fun CustomReminderAlertCard(
             headlineContent = {
                 Text(
                     reminder.title.ifBlank { "Reminder" },
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontSize = scaled.titleMedium
+                    ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -357,7 +396,10 @@ private fun CustomReminderAlertCard(
                 Text(
                     reminder.message.ifBlank {
                         reminder.plantName?.let { "For $it" } ?: "Custom plant task"
-                    }
+                    },
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = scaled.bodyMedium
+                    )
                 )
             }
         )

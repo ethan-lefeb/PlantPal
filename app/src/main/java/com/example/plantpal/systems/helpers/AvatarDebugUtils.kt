@@ -4,6 +4,7 @@ import android.util.Log
 import com.example.plantpal.AvatarGenerator
 import com.example.plantpal.com.example.plantpal.data.com.example.plantpal.data.AvatarConfig
 import com.example.plantpal.com.example.plantpal.data.com.example.plantpal.data.PlantProfile
+import com.example.plantpal.com.example.plantpal.systems.helpers.PlantRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

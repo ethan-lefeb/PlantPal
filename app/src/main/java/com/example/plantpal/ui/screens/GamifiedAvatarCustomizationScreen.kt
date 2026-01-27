@@ -35,7 +35,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import com.example.plantpal.com.example.plantpal.data.com.example.plantpal.data.AvatarConfig
 import com.example.plantpal.com.example.plantpal.data.com.example.plantpal.data.PlantProfile
 import com.example.plantpal.com.example.plantpal.systems.badges.com.example.plantpal.systems.badges.UserProgress
-import com.example.plantpal.com.example.plantpal.systems.helpers.com.example.plantpal.systems.helpers.PlantRepository
+import com.example.plantpal.com.example.plantpal.systems.helpers.PlantRepository
 import com.example.plantpal.com.example.plantpal.systems.helpers.com.example.plantpal.systems.helpers.ProgressRepository
 
 data class CustomizationUiState(

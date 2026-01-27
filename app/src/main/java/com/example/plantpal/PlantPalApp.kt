@@ -26,6 +26,7 @@ import androidx.work.WorkManager
 import com.example.plantpal.com.example.plantpal.data.com.example.plantpal.data.AvatarConfig
 import com.example.plantpal.com.example.plantpal.data.com.example.plantpal.data.PlantProfile
 import com.example.plantpal.com.example.plantpal.ui.screens.com.example.plantpal.ui.screens.DashboardScreen
+import com.example.plantpal.screens.profile.SocialDashboardScreen
 import com.example.plantpal.ui.theme.ForestGradientBalanced
 
 data class Tab(val route: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
@@ -65,7 +66,8 @@ fun PlantPalApp(
                     currentRoute != "settings" &&
                     currentRoute != "developerSettings" &&
                     currentRoute != "badges" &&
-                    currentRoute != "avatarCustomization") {
+                    currentRoute != "avatarCustomization" &&
+                    currentRoute != "socialDashboard") {
 
                     NavigationBar(
                         containerColor = Color(0xFF52796F),
@@ -153,12 +155,20 @@ fun PlantPalApp(
                     ProfileScreen(
                         onSignOut = onSignOut,
                         onDeveloperSettings = { navController.navigate("developerSettings") },
-                        onBadges = { navController.navigate("badges") }
+                        onSettings = { navController.navigate("settings") },
+                        onBadges = { navController.navigate("badges") },
+                        onSocialDashboard = { navController.navigate("socialDashboard") }
                     )
                 }
 
                 composable("badges") {
                     BadgesScreen(
+                        onBack = { navController.popBackStack() }
+                    )
+                }
+
+                composable("socialDashboard") {
+                    SocialDashboardScreen(
                         onBack = { navController.popBackStack() }
                     )
                 }
@@ -172,7 +182,6 @@ fun PlantPalApp(
 
                 composable("developerSettings") {
                     DeveloperSettingsScreen(
-                        workManager = WorkManager.getInstance(),
                         onBack = { navController.popBackStack() }
                     )
                 }
@@ -319,8 +328,8 @@ object AvatarGenerator {
     fun generateRandomAvatar(): AvatarConfig {
         val types = PlantTypeDatabase.getAllAvatarTypes()
         val colors = PlantTypeDatabase.getAllColors()
-        val potColors = listOf("terracotta", "ceramic_white", "ceramic_blue", "ceramic_green", 
-                               "modern_gray", "rustic_brown", "pink", "yellow", "purple")
+        val potColors = listOf("terracotta", "ceramic_white", "ceramic_blue", "ceramic_green",
+            "modern_gray", "rustic_brown", "pink", "yellow", "purple")
         val potStyles = listOf("classic", "modern", "hanging")
 
         return AvatarConfig(
@@ -390,10 +399,10 @@ object AvatarGenerator {
             "genus" -> "Avatar chosen based on plant genus. This is very reliable."
             "scientific_name" -> "Avatar matched using scientific name patterns."
             "keyword" -> "Avatar matched using common name keywords. " +
-                if (result.confidence > 0.7f) "Good match." else "Consider customizing if incorrect."
+                    if (result.confidence > 0.7f) "Good match." else "Consider customizing if incorrect."
             "partial_family" -> "Avatar matched using partial family name. May need adjustment."
             "default" -> "Generic avatar used - plant type not in database. " +
-                "You can customize this avatar to better match your plant."
+                    "You can customize this avatar to better match your plant."
             else -> "Avatar generated using available plant information."
         }
     }
