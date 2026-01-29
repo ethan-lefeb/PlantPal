@@ -1,11 +1,21 @@
 package com.example.plantpal
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledTonalButton
@@ -21,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -34,6 +45,9 @@ import com.example.plantpal.ui.theme.LocalUIScale
 import kotlinx.coroutines.launch
 import kotlin.math.max
 
+// --- Light Blossom button colors (scoped to this file) ---
+private val BlossomLight = Color(0xFFF7D6E4)   // lighter blush blossom
+private val BlossomOnLight = Color(0xFF6A3347) // muted plum for text/icons
 
 private fun daysSince(ts: Long): Int {
     if (ts <= 0L) return Int.MAX_VALUE // treat as never done
@@ -143,7 +157,6 @@ class AlertsViewModel : ViewModel() {
         }
     }
 }
-
 
 @Composable
 fun AlertsScreen(
@@ -356,7 +369,13 @@ private fun CareCard(
             trailingContent = {
                 FilledTonalButton(
                     onClick = onAction,
-                    modifier = Modifier.height(scaled.buttonHeight)
+                    modifier = Modifier.height(scaled.buttonHeight),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = BlossomLight,
+                        contentColor = BlossomOnLight,
+                        disabledContainerColor = BlossomLight.copy(alpha = 0.5f),
+                        disabledContentColor = BlossomOnLight.copy(alpha = 0.5f)
+                    )
                 ) {
                     Icon(
                         Icons.Default.Check,
@@ -364,7 +383,11 @@ private fun CareCard(
                         modifier = Modifier.size(scaled.iconSizeSmall)
                     )
                     Spacer(Modifier.width(scaled.spacingSmall))
-                    Text(actionLabel, fontSize = scaled.labelMedium)
+                    Text(
+                        actionLabel,
+                        fontSize = scaled.labelMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
         )

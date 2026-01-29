@@ -29,6 +29,9 @@ import com.example.plantpal.com.example.plantpal.ui.screens.com.example.plantpal
 import com.example.plantpal.screens.profile.SocialDashboardScreen
 import com.example.plantpal.ui.theme.ForestGradientBalanced
 
+val blossomPill = Color(0xFFF7D6E4)
+val blossomOn = Color(0xFF6A3347)
+
 data class Tab(val route: String, val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -78,21 +81,36 @@ fun PlantPalApp(
                                 selected = currentRoute == tab.route,
                                 onClick = {
                                     navController.navigate(tab.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
+                                        popUpTo("home") {
+                                            inclusive = false
                                         }
                                         launchSingleTop = true
-                                        restoreState = true
                                     }
                                 },
-                                icon = { Icon(tab.icon, contentDescription = tab.label, tint = Color.White) },
+                                icon = {
+                                    Icon(
+                                        tab.icon,
+                                        contentDescription = tab.label
+                                    )
+                                },
                                 label = {
                                     Text(
                                         tab.label,
-                                        color = Color.White,
                                         style = MaterialTheme.typography.labelMedium
                                     )
-                                }
+                                },
+                                colors = NavigationBarItemDefaults.colors(
+                                    // 🌸 selected pill color
+                                    indicatorColor = blossomPill,
+
+                                    // selected icon/text on pill
+                                    selectedIconColor = blossomOn,
+                                    selectedTextColor = blossomOn,
+
+                                    // unselected icon/text on green bar
+                                    unselectedIconColor = Color.White,
+                                    unselectedTextColor = Color.White
+                                )
                             )
                         }
                     }
@@ -138,7 +156,9 @@ fun PlantPalApp(
                     PlantsHomeScreen(
                         viewModel = plantsViewModel,
                         onPlantClick = { plantId ->
-                            navController.navigate("plantDetail/$currentUserId/$plantId")
+                            navController.navigate("plantDetail/$currentUserId/$plantId") {
+                                launchSingleTop = true
+                            }
                         }
                     )
                 }

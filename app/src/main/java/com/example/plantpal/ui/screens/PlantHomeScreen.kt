@@ -32,6 +32,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+private val BlossomLight = Color(0xFFF7D6E4)   // lighter blush blossom
+private val BlossomOnLight = Color(0xFF6A3347)
 data class PlantsUiState(
     val plants: List<PlantProfile> = emptyList(),
     val isLoading: Boolean = true,
