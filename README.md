@@ -1,76 +1,219 @@
-Purpose
+# PlantPal 🌱
 
-PlantPal is a mobile application that gamifies houseplant care through digital avatars that respond to real-world plant maintenance. By combining nostalgic Tamagotchi-style interactions with AI-powered plant identification and personalized care recommendations, PlantPal transforms plant care from a chore into an engaging, educational experience that helps users successfully maintain their houseplants.
+**Gamified houseplant care, right on your phone.**
 
-Goal
+![PlantPal Preview](./thumbnail.png)
 
-Many plant enthusiasts struggle with inconsistent care routines, leading to plant death and discouragement. PlantPal addresses this by providing reminders, guidance, and gamified feedback to promote consistent care habits.
+---
 
-Existing Solution
+## Overview
 
-Current plant care apps like PlantIn, Blossom, and Vera focus primarily on identification or basic reminders but lack engaging, interactive elements that sustain long-term user engagement.
+PlantPal is an Android app that turns plant care into a delightful game—think modern Tamagotchi vibes for your real plants. Snap a photo to add a plant, and PlantPal creates a cute digital avatar that reacts to your care: water on time and it perks up, forget and it droops. With AI-powered identification (planned), personalized care reminders, and friendly gamification, PlantPal makes plant parenting simple and fun.
 
-Definitions
+---
 
-Digital Avatar: Virtual representation of a user's real plant that reflects health status.
+## Features
 
-Plant.id API: Third-party service for AI-powered plant species identification.
+### ✅ Core (MVP)
 
-Care Profile: Customized watering, sunlight, and fertilizer schedule for specific plant species.
+* **Secure Accounts** – Sign up and log in with Firebase Authentication
+* **Add Plants by Photo** – Capture images in-app to register new plants
+* **Digital Avatars** – Each plant gets a unique, charming avatar
+* **Plant Profiles** – Store common & scientific names, photos, and personal notes
+* **Care Logs** – Track watering, fertilizing, and other activities
+* **Cloud Sync** – Plant data stored in **Firebase Firestore** (with local photo storage via `FileProvider`)
 
-Overall Description
-Product Perspective
+###  In Development
 
-PlantPal is a mobile-first app that combines gamification with AI-powered plant care. Users interact through touchscreen gestures, voice input, and keyboard input for naming or notes.
+* **AI Plant Recognition** – Identify species from photos
+* **Personalized Care Profiles** – Automated schedules by species
+* **Smart Reminders** – Push notifications for watering, rotation, fertilizing
+* **Avatar Health System** – Moods/health reflect real-world care patterns
 
-User Interface Hardware
+###  Upcoming 
 
-Primary: Touchscreen
+* **Multi-Plant Dashboard** – At-a-glance health & status
+* **Achievement System** – Badges for healthy streaks
+* **Social Sharing** – Post avatars and milestones
 
-Additional: Voice input (optional), Keyboard input for text entry
+---
 
-Hardware Interfaces & Memory Constraints
+## Tech Stack
 
-Device Requirements: Smartphone or tablet (Android)
+**Platform & Language**
 
-Additional Hardware: Camera (for plant identification), Microphone (optional), Internet connection
+* Android (Native) • Kotlin • Jetpack Compose
 
-Software Interfaces
+**Android Versions**
 
-Operating System: Android 12+
+* **Min SDK:** 24 (Android 7.0 Nougat)
+* **Compile SDK:** 36
+* **Target SDK:** 36
 
-Third-Party Integrations:
+**Architecture & Libraries**
 
-Native camera apps
+* **Navigation:** Jetpack Navigation Compose
+* **State & Lifecycle:** AndroidX Lifecycle + ViewModel
+* **Async:** Kotlin Coroutines & Flow
+* **Camera & Media:** Android Camera API with `FileProvider`
 
-System notifications
+**Backend & Cloud**
 
-Calendar integration
+* **Firebase Authentication** – Accounts & sessions
+* **Firebase Firestore** – NoSQL database for profiles & logs
+* **Firebase Storage** – Plant photos *(planned)*
+* **Firebase Cloud Messaging** – Reminders *(planned)*
 
-Social media sharing
 
-Library Dependencies
+---
 
-Framework: Android SDK (Java/Kotlin)
+## Installation
 
-UI: Jetpack libraries (Lifecycle, ViewModel, LiveData), Material Components
+### For End Users
 
-Networking: Retrofit2 / OkHttp
+1. **Download the APK** (from the repo’s *Releases* page, when available).
+2. **Enable Unknown Sources** on your device:
 
-Image Handling: Glide or Coil
+   * *Settings → Security (or Privacy) → Install unknown apps* → Allow for your browser/files app.
+3. **Install PlantPal** by opening the downloaded APK.
+4. **Create an Account** and sign in.
+5. **Add Your First Plant** by tapping **“+”** and taking a photo.
 
-Local Storage: Room (SQLite wrapper)
+**System Requirements**
 
-Database
+* Android 7.0 (API 24) or higher
+* Camera recommended
+* Internet connection for cloud sync
 
-Cloud: Firebase Firestore (user accounts, plant profiles, care logs)
+---
 
-Offline: Room (care reminders, avatar state, last synced data)
+## Development Setup
 
-3rd Party Data and APIs
+### Prerequisites
 
-Plant.id API – AI-powered plant species identification
+* **Android Studio:** Koala Feature Drop (2024.1.2) or later
+* **JDK:** 11+
+* **Gradle:** 8.13
+* **Firebase project:** for Auth & Firestore
 
-Firebase Authentication – Account management
+### 1) Clone the Repository
 
-Firebase Cloud Messaging – Push notifications
+```bash
+git clone https://github.com/yourusername/plantpal.git
+cd plantpal
+```
+
+### 2) Open in Android Studio
+
+* Launch Android Studio → **Open an Existing Project** → select the `plantpal` directory.
+
+### 3) Configure Firebase
+
+1. Create a new project in the **Firebase Console**.
+2. Add an **Android app** with the package name: `com.example.plantpal`.
+3. Download `google-services.json`.
+4. Place it in the project at:
+
+   ```
+   app/google-services.json
+   ```
+5. In Firebase Console, enable:
+
+   * **Authentication** → Email/Password
+   * **Cloud Firestore**
+
+> **Note:** Firebase Storage & Cloud Messaging can be enabled later as those features roll out.
+
+### 4) Sync & Build
+
+* Android Studio will prompt you to **Sync Gradle**.
+* If not, use **File → Sync Project with Gradle Files**.
+
+**Build Configuration**
+
+* **Gradle:** 8.13 (via `gradle-wrapper.properties`)
+* **Build Variants:** Debug / Release
+* **Compile SDK:** 36
+* **Min SDK:** 24
+
+### 5) Run the App
+
+* Connect a device or start an emulator (API 24+).
+* Click **Run** (▶) or press **Shift + F10**.
+* Select your target device.
+
+---
+
+## Project Status
+
+### ✅ Completed Milestones
+
+* User authentication (sign up/login)
+* Firestore integration
+* Camera integration for plant photos
+* Basic plant profile storage
+* Bottom navigation
+* Multi-plant dashboard with health indicators
+* Local photo storage with `FileProvider`
+* AI plant identification (Plant.id integration)
+* Avatar generation system
+* Care reminder notifications
+* Plant health tracking
+
+### 🔄 In Progress
+
+
+
+### 📋 Next Up (Beta)
+
+
+* Achievement/badge system
+* Social sharing features
+
+---
+
+## Roadmap
+
+**v1.0 (Target: TBD)**
+
+* Full AI plant identification
+* Automated care schedules
+* Push notification system
+* Avatar health system with animations
+* Achievement badges
+
+**v2.0 (Future)**
+
+* Community features (forums, plant trading)
+* Web dashboard companion app
+* Avatar customization marketplace
+
+---
+
+## Contributors
+
+* **Joshua Lindgren** – Frontend Development
+* **Devin McLaughlin** – UX/UI Design
+* **Ethan LeFebvre** – Backend Development
+
+---
+
+## Contributing
+
+Have ideas or found a bug? Issues and PRs are welcome!
+
+---
+
+## License
+
+**MIT License** — © 2025 PlantPal Team
+See the [LICENSE](./LICENSE) file for the full text.
+
+---
+
+## Acknowledgments
+
+* **Full Sail University** for guidance and support
+* **Firebase** for backend infrastructure
+* The **Android/Jetpack Compose** community for docs and examples
+* **Plant.id** for the plant recognition API
